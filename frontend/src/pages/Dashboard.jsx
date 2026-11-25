@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { formatRupiah } from '../utils/formatRupiah';
+import { toTanggalLokal } from '../utils/formatTanggal';
 import Card from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
 import axiosInstance from '../api/axiosInstance';
-import { toast } from 'react-hot-toast';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LabelList } from 'recharts';
 import useAuthStore from '../store/useAuthStore';
 import Pagination from '../components/ui/Pagination';
@@ -20,7 +17,7 @@ const Dashboard = () => {
   const [komposisi, setKomposisi] = useState([]);
   
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
 
   const formatAngka = (value) => {
     if (value >= 1000000) return `${value / 1000000}Jt`;
@@ -31,11 +28,12 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
+      const hariIni = toTanggalLokal();
       try {
         const [sumRes, stokRes, trxRes, grafikRes, lapRes] = await Promise.all([
           axiosInstance.get('/dashboard/summary'),
           axiosInstance.get('/dashboard/stok-kritis'),
-          axiosInstance.get('/transaksi?limit=5'),
+          axiosInstance.get('/transaksi', { params: { tanggalMulai: hariIni, tanggalSelesai: hariIni, limit: 100 } }),
           axiosInstance.get('/dashboard/grafik'),
           axiosInstance.get('/laporan/keuangan?periode=harian')
         ]);
@@ -122,11 +120,11 @@ const Dashboard = () => {
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
                   />
                   <Legend iconType="square" iconSize={8} wrapperStyle={{ fontSize: '11px', color: '#6b7280', paddingTop: '10px' }} />
-                  <Bar dataKey="Pendapatan" fill="#3b82f6" radius={[2, 2, 0, 0]} barSize={24}>
-                    <LabelList dataKey="Pendapatan" position="top" formatter={formatAngka} style={{ fill: '#3b82f6', fontSize: 10, fontWeight: 600 }} />
+                  <Bar dataKey="Pendapatan" fill="#002444" radius={[2, 2, 0, 0]} barSize={24}>
+                    <LabelList dataKey="Pendapatan" position="top" formatter={formatAngka} style={{ fill: '#002444', fontSize: 10, fontWeight: 600 }} />
                   </Bar>
-                  <Bar dataKey="Pengeluaran" fill="#f59e0b" radius={[2, 2, 0, 0]} barSize={24}>
-                    <LabelList dataKey="Pengeluaran" position="top" formatter={formatAngka} style={{ fill: '#f59e0b', fontSize: 10, fontWeight: 600 }} />
+                  <Bar dataKey="Pengeluaran" fill="#ffb95d" radius={[2, 2, 0, 0]} barSize={24}>
+                    <LabelList dataKey="Pengeluaran" position="top" formatter={formatAngka} style={{ fill: '#ffb95d', fontSize: 10, fontWeight: 600 }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -141,14 +139,14 @@ const Dashboard = () => {
               {stokKritis.length > 0 ? stokKritis.slice(0, 4).map(item => {
                 const max = Math.max(item.stok, item.stokMinimum * 2, 10);
                 const pct = Math.min((item.stok / max) * 100, 100);
-                const color = item.stok <= 0 ? 'bg-red-500' : (item.stok <= item.stokMinimum ? 'bg-amber-500' : 'bg-teal-500');
+                const color = item.stok <= 0 ? 'bg-[#ba1a1a]' : (item.stok <= item.stokMinimum ? 'bg-[#653e00]' : 'bg-[#006c4e]');
                 return (
                   <div key={item.id} className="flex items-center gap-3">
                     <div className="w-24 text-[11px] text-neutral-600 truncate">{item.namaBahan}</div>
                     <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
                       <div className={`h-full ${color}`} style={{ width: `${pct}%` }}></div>
                     </div>
-                    <div className="w-12 text-right text-[10px] text-neutral-400">{item.stok} {item.satuan}</div>
+                    <div className="w-12 text-right text-[10px] text-neutral-400 font-mono">{item.stok} {item.satuan}</div>
                   </div>
                 );
               }) : (
@@ -160,7 +158,7 @@ const Dashboard = () => {
           <Card title="Komposisi Penjualan Hari Ini">
             <div className="space-y-3 mt-2">
               {komposisi.length > 0 ? komposisi.map((item, idx) => {
-                const colors = ['bg-[#1e3251]', 'bg-teal-500', 'bg-amber-500', 'bg-red-500', 'bg-indigo-500'];
+                const colors = ['bg-[#002444]', 'bg-[#006c4e]', 'bg-[#1a3a5c]', 'bg-[#ba1a1a]', 'bg-[#83f5c6]'];
                 const color = colors[idx % colors.length];
                 return (
                   <div key={item.kategori} className="flex items-center gap-3">
@@ -171,7 +169,7 @@ const Dashboard = () => {
                     <div className="flex-1 h-1 bg-neutral-100 rounded-full overflow-hidden">
                       <div className={`h-full ${color}`} style={{ width: `${item.persentase}%` }}></div>
                     </div>
-                    <div className="w-10 text-right text-[11px] text-neutral-400">{item.persentase}%</div>
+                    <div className="w-10 text-right text-[11px] text-neutral-400 font-mono">{item.persentase}%</div>
                   </div>
                 );
               }) : (
@@ -185,32 +183,36 @@ const Dashboard = () => {
         <div className="lg:col-span-12">
           <Card title="Transaksi Terbaru Hari Ini" noPadding>
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
+              <table className="w-full text-xs text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-neutral-100">
-                    <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">ID TRANSAKSI</th>
-                    <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">WAKTU</th>
-                    <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">KASIR</th>
-                    <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">ITEM</th>
-                    <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">METODE</th>
-                    <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">TOTAL</th>
-                    <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">STATUS</th>
+                  <tr className="bg-[#f8f9fb] border-b border-[#c3c6cf]/30 text-[#43474e]">
+                    <th className="py-3 px-6 font-semibold">ID TRANSAKSI</th>
+                    <th className="py-3 px-6 font-semibold">WAKTU</th>
+                    <th className="py-3 px-6 font-semibold">KASIR</th>
+                    <th className="py-3 px-6 font-semibold">ITEM</th>
+                    <th className="py-3 px-6 font-semibold">METODE</th>
+                    <th className="py-3 px-6 font-semibold">TOTAL</th>
+                    <th className="py-3 px-6 font-semibold text-center">STATUS</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-neutral-50 text-neutral-600">
+                <tbody className="divide-y divide-[#c3c6cf]/20 font-medium text-neutral-600">
                   {transaksiTerbaru.length > 0 ? transaksiTerbaru.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((trx) => (
-                    <tr key={trx.id} className="even:bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
-                      <td className="py-4 px-6 text-xs">{trx.kodeTransaksi || `#T-${trx.id}`}</td>
-                      <td className="py-4 px-6 text-xs">{new Date(trx.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
+                    <tr key={trx.id} className="hover:bg-[#f8f9fb] transition-colors">
+                      <td className="py-4 px-6 text-xs text-[#1e3251] font-semibold">{trx.kodeTransaksi || `#T-${trx.id}`}</td>
+                      <td className="py-4 px-6 text-xs font-mono">{new Date(trx.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td>
                       <td className="py-4 px-6 text-xs">{trx.kasir?.nama || '-'}</td>
                       <td className="py-4 px-6 text-xs text-neutral-500 truncate max-w-[250px]">{trx.items?.map(i => `${i.menu?.nama} x${i.qty}`).join(', ') || '-'}</td>
                       <td className="py-4 px-6 text-xs">{trx.metode}</td>
-                      <td className="py-4 px-6 text-xs font-semibold">{formatRupiah(trx.total)}</td>
-                      <td className="py-4 px-6"><Badge variant="success">Selesai</Badge></td>
+                      <td className="py-4 px-6 text-xs font-mono font-bold">{formatRupiah(trx.total)}</td>
+                      <td className="py-4 px-6 text-center">
+                        <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#83f5c6] text-[#006c4e]">
+                          Selesai
+                        </span>
+                      </td>
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan="7" className="py-4 px-6 text-center text-xs text-neutral-500">Belum ada transaksi hari ini</td>
+                      <td colSpan="7" className="py-4 px-6 text-center text-xs text-neutral-500">Belum ada transaksi hari ini.</td>
                     </tr>
                   )}
                 </tbody>

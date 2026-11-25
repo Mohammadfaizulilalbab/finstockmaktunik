@@ -61,3 +61,16 @@ export const formatTanggalSingkat = (tanggal) => {
   const date = typeof tanggal === 'string' ? parseISO(tanggal) : tanggal;
   return format(date, 'dd/MM/yyyy');
 };
+
+/**
+ * Tanggal "YYYY-MM-DD" menurut zona waktu browser (bukan UTC).
+ * Hindari `toISOString().split('T')[0]`: di WIB, jam 00:00–06:59
+ * masih terhitung tanggal kemarin.
+ * Contoh: "2026-10-06T17:06:40Z" → "2026-10-07" (WIB)
+ * @param {string|Date} [tanggal] - default: sekarang
+ * @returns {string}
+ */
+export const toTanggalLokal = (tanggal = new Date()) => {
+  const date = typeof tanggal === 'string' ? parseISO(tanggal) : tanggal;
+  return format(date, 'yyyy-MM-dd');
+};

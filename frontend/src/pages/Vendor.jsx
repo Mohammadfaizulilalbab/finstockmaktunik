@@ -27,7 +27,7 @@ const Vendor = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
 
   useEffect(() => {
     fetchVendors();
@@ -68,8 +68,8 @@ const Vendor = () => {
       return <ArrowUpDown size={12} className="text-neutral-300" />;
     }
     return sortConfig.direction === 'ascending' 
-      ? <ArrowUp size={12} className="text-teal-600" />
-      : <ArrowDown size={12} className="text-teal-600" />;
+      ? <ArrowUp size={12} className="text-[#002444]" />
+      : <ArrowDown size={12} className="text-[#002444]" />;
   };
 
   const stats = useMemo(() => ({
@@ -149,7 +149,7 @@ const Vendor = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3251]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#002444]"></div>
       </div>
     );
   }
@@ -157,14 +157,21 @@ const Vendor = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <h1 className="text-xl font-bold text-neutral-800">Manajemen Vendor</h1>
+      {/* Vendor header */}
+      <div className="flex justify-between items-center bg-white p-5 rounded-xl border border-[#c3c6cf]/30 shadow-sm">
+        <div>
+          <h3 className="text-sm font-bold text-[#002444] uppercase tracking-wider mb-1">
+            Mitra Kerja &amp; Vendor Supplier
+          </h3>
+          <p className="text-xs text-[#73777f]">Kelola data pemasok bahan baku, informasi kontak, dan kontrak produk kemitraan.</p>
+        </div>
+
         <button
           onClick={() => openModal('TAMBAH')}
-          className="bg-[#1e3251] text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors"
+          className="px-4 py-2 bg-[#006c4e] text-white rounded-lg font-bold text-xs hover:bg-[#00513a] flex items-center gap-1 transition-colors"
         >
           <Plus size={16} />
-          Tambah Vendor
+          <span>Tambah Vendor</span>
         </button>
       </div>
 
@@ -196,7 +203,7 @@ const Vendor = () => {
       {/* Vendor Table */}
       <Card title="Daftar Vendor / Supplier" noPadding>
         {/* Filters */}
-        <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3">
+        <div className="p-4 border-b border-[#c3c6cf]/30 flex flex-wrap gap-3 bg-white">
           <div className="relative flex-1 min-w-[200px]">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
@@ -204,13 +211,13 @@ const Vendor = () => {
               placeholder="Cari nama, telepon, atau email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 border border-neutral-200 rounded-md text-sm outline-none focus:border-teal-500"
+              className="w-full pl-9 pr-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm outline-none focus:border-[#002444] text-[#191c1e] transition-colors"
             />
           </div>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer"
           >
             <option value="">Semua Status</option>
             <option value="AKTIF">Aktif</option>
@@ -220,11 +227,11 @@ const Vendor = () => {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-xs text-left border-collapse bg-white">
             <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50/50">
+              <tr className="bg-[#f8f9fb] border-b border-[#c3c6cf]/30 text-[#43474e]">
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none"
                   onClick={() => requestSort('nama')}
                 >
                   <div className="flex items-center gap-2">
@@ -232,10 +239,10 @@ const Vendor = () => {
                     {getSortIcon('nama')}
                   </div>
                 </th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">KONTAK</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">ALAMAT</th>
+                <th className="py-3 px-6 font-semibold">KONTAK</th>
+                <th className="py-3 px-6 font-semibold">ALAMAT</th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-center cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold text-center cursor-pointer hover:bg-neutral-100 transition-colors select-none"
                   onClick={() => requestSort('_count.produk')}
                 >
                   <div className="flex items-center justify-center gap-2">
@@ -244,7 +251,7 @@ const Vendor = () => {
                   </div>
                 </th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none"
                   onClick={() => requestSort('status')}
                 >
                   <div className="flex items-center gap-2">
@@ -252,19 +259,19 @@ const Vendor = () => {
                     {getSortIcon('status')}
                   </div>
                 </th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-right">AKSI</th>
+                <th className="py-3 px-6 font-semibold text-right">AKSI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-50 text-neutral-600">
+            <tbody className="divide-y divide-[#c3c6cf]/20 font-medium text-neutral-600">
               {sortedVendors.length > 0 ? sortedVendors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((vendor) => (
-                <tr key={vendor.id} className="even:bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
+                <tr key={vendor.id} className="hover:bg-[#f8f9fb] transition-colors">
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#1e3251] to-teal-600 flex items-center justify-center text-white font-bold text-xs shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#002444] to-[#1a3a5c] flex items-center justify-center text-white font-bold text-xs shrink-0">
                         {vendor.nama.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-neutral-800">{vendor.nama}</p>
+                        <p className="text-xs font-bold text-[#002444]">{vendor.nama}</p>
                         <p className="text-[10px] text-neutral-400 mt-0.5">ID: #V-{String(vendor.id).padStart(3, '0')}</p>
                       </div>
                     </div>
@@ -301,20 +308,24 @@ const Vendor = () => {
                     </div>
                   </td>
                   <td className="py-4 px-6 text-center">
-                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold">
+                    <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-blue-700 text-xs font-bold font-mono">
                       {vendor._count?.produk || 0}
                     </span>
                   </td>
                   <td className="py-4 px-6">
-                    <Badge variant={vendor.status === 'AKTIF' ? 'success' : 'danger'}>
+                    <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[10px] font-bold w-24 ${
+                      vendor.status === 'AKTIF' 
+                        ? 'bg-[#83f5c6] text-[#006c4e]' 
+                        : 'bg-[#ffdad6] text-[#ba1a1a]'
+                    }`}>
                       {vendor.status}
-                    </Badge>
+                    </span>
                   </td>
                   <td className="py-4 px-6 text-right">
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => navigate(`/vendor/${vendor.id}`)}
-                        className="p-1.5 text-neutral-400 hover:text-[#1e3251] hover:bg-neutral-100 rounded-md transition-colors"
+                        className="p-1.5 text-neutral-400 hover:text-[#002444] hover:bg-neutral-100 rounded-md transition-colors"
                         title="Lihat Detail"
                       >
                         <Eye size={14} />
@@ -340,7 +351,7 @@ const Vendor = () => {
                 <tr>
                   <td colSpan="6" className="py-12 text-center">
                     <Truck size={32} className="mx-auto text-neutral-300 mb-3" />
-                    <p className="text-sm text-neutral-400">Belum ada data vendor</p>
+                    <p className="text-sm text-neutral-400">No data available.</p>
                     <p className="text-xs text-neutral-300 mt-1">Klik "Tambah Vendor" untuk menambah vendor baru</p>
                   </td>
                 </tr>
@@ -379,7 +390,7 @@ const Vendor = () => {
               value={formData.nama}
               onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
               placeholder="Contoh: PT. Sumber Makmur"
-              className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+              className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-[#002444] focus:ring-1 focus:ring-[#002444] bg-white transition-colors"
             />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -390,7 +401,7 @@ const Vendor = () => {
                 value={formData.telepon}
                 onChange={(e) => setFormData({ ...formData, telepon: e.target.value })}
                 placeholder="08xxxxxxxxxx"
-                className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-[#002444] focus:ring-1 focus:ring-[#002444] bg-white transition-colors"
               />
             </div>
             <div>
@@ -400,7 +411,7 @@ const Vendor = () => {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 placeholder="vendor@email.com"
-                className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-[#002444] focus:ring-1 focus:ring-[#002444] bg-white transition-colors"
               />
             </div>
           </div>
@@ -411,7 +422,7 @@ const Vendor = () => {
               onChange={(e) => setFormData({ ...formData, alamat: e.target.value })}
               placeholder="Alamat lengkap vendor..."
               rows={2}
-              className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none"
+              className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-[#002444] focus:ring-1 focus:ring-[#002444] bg-white transition-colors resize-none"
             />
           </div>
           <div>
@@ -421,7 +432,7 @@ const Vendor = () => {
               onChange={(e) => setFormData({ ...formData, catatan: e.target.value })}
               placeholder="Catatan tambahan..."
               rows={2}
-              className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none"
+              className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-[#002444] focus:ring-1 focus:ring-[#002444] bg-white transition-colors resize-none"
             />
           </div>
           {activeModal === 'EDIT' && (
@@ -430,7 +441,7 @@ const Vendor = () => {
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-teal-500 bg-white"
+                className="w-full px-3 py-2 border border-neutral-200 rounded-lg text-sm outline-none focus:border-[#002444] bg-white cursor-pointer"
               >
                 <option value="AKTIF">Aktif</option>
                 <option value="NONAKTIF">Nonaktif</option>

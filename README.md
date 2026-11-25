@@ -13,7 +13,12 @@ FinStocks adalah Sistem Informasi Manajemen berbasis web yang dirancang khusus u
 - **Monitoring Persediaan** — CRUD bahan baku, restock, riwayat stok, level indikator
 - **Laporan Keuangan** — Pendapatan, pengeluaran, laba bersih per periode + export PDF/Excel
 - **Manajemen Pengguna** — CRUD user dengan role OWNER & KARYAWAN
-- **Role-Based Access Control** — Owner akses penuh, Karyawan hanya transaksi
+- **Role-Based Access Control** — Owner akses penuh, Karyawan sesuai izin fitur
+- **Autentikasi** — Login dengan email/username atau akun Google, lupa password via email
+- **Pendaftaran Akun dengan Persetujuan Owner** — Pendaftar memverifikasi email, akun baru dibuat setelah owner (superadmin) menyetujui
+- **Aturan Password** — 8–16 karakter, minimal 1 huruf besar dan 1 angka
+
+> 📖 Detail arsitektur, alur, dan konfigurasi autentikasi: [docs/AUTH.md](docs/AUTH.md)
 
 ---
 
@@ -21,10 +26,11 @@ FinStocks adalah Sistem Informasi Manajemen berbasis web yang dirancang khusus u
 
 | Layer | Teknologi |
 |---|---|
-| Frontend | React 18 (Vite), Tailwind CSS 3, Zustand, Recharts |
+| Frontend | React 19 (Vite), Tailwind CSS 3, Zustand, Recharts |
 | Backend | Node.js, Express 5, Prisma ORM 5 |
 | Database | MySQL 8 |
-| Auth | JWT (jsonwebtoken) + bcryptjs |
+| Auth | JWT (jsonwebtoken) + bcryptjs, Google Identity Services (google-auth-library), express-rate-limit |
+| Email | nodemailer (SMTP Gmail + App Password) |
 | Export | pdfkit (PDF), exceljs (Excel) |
 
 ---
@@ -55,12 +61,14 @@ npm install
 # Salin file environment
 cp .env.example .env
 # Edit .env → isi DATABASE_URL, JWT_SECRET
+# Opsional: GOOGLE_CLIENT_ID (login Google) dan SMTP_* (pengiriman email)
+# Tanpa SMTP, isi email (link verifikasi/reset) dicetak di terminal backend
 
 # Buat database MySQL
 # mysql -u root -p -e "CREATE DATABASE finstocks_db;"
 
 # Jalankan migrasi Prisma
-npx prisma migrate dev --name init
+npx prisma migrate dev
 
 # Isi data awal (seed)
 npx prisma db seed
@@ -81,6 +89,7 @@ npm install
 
 # Salin file environment
 cp .env.example .env
+# Opsional: isi VITE_GOOGLE_CLIENT_ID untuk menampilkan tombol "Masuk dengan Google"
 
 # Jalankan frontend
 npm run dev
@@ -92,9 +101,13 @@ Frontend akan berjalan di `http://localhost:5173`
 
 | Username | Password | Role |
 |---|---|---|
-| `owner` | `owner123` | OWNER |
-| `karyawan1` | `karyawan123` | KARYAWAN |
-| `karyawan2` | `karyawan123` | KARYAWAN |
+| `owner` | `Owner123` | OWNER |
+| `karyawan1` | `Karyawan123` | KARYAWAN |
+| `karyawan2` | `Karyawan123` | KARYAWAN |
+
+> Database yang di-seed sebelum aturan password baru tetap memakai password lama (`owner123` / `karyawan123`). Aturan password hanya berlaku saat password dibuat atau diubah.
+>
+> Setelah login pertama, owner sebaiknya mengisi **email** di halaman Pengguna agar menerima notifikasi pendaftaran baru, bisa masuk dengan Google, dan bisa memakai fitur lupa password.
 
 ---
 
@@ -105,20 +118,23 @@ finstocks/
 ├── backend/
 │   ├── prisma/              # Schema & seed
 │   ├── src/
-│   │   ├── config/          # Database connection
-│   │   ├── middlewares/      # Auth & Role middleware
-│   │   ├── modules/          # 7 modul (auth, transaksi, persediaan, dll)
-│   │   ├── utils/            # Response helper, JWT helper
+│   │   ├── config/          # Koneksi database, konfigurasi auth, daftar izin
+│   │   ├── middlewares/      # Auth, role, validasi, rate limit
+│   │   ├── modules/          # 10 modul (auth, pendaftaran, transaksi, persediaan, dll)
+│   │   ├── services/         # Layanan lintas modul (email, notifikasi, Google, log)
+│   │   ├── utils/            # Response, JWT, AppError, asyncHandler, password, token
 │   │   └── index.js          # Entry point Express
 │   ├── Dockerfile
 │   └── package.json
 └── frontend/
     ├── src/
-    │   ├── api/              # Axios instance
-    │   ├── components/       # UI (Button, Card, dll) + Layout (Sidebar, Navbar)
-    │   ├── pages/            # 9 halaman (Login, Dashboard, Transaksi, dll)
+    │   ├── api/              # Axios instance + modul API (authApi, pendaftaranApi)
+    │   ├── components/       # UI, Layout, auth/ (form login), pengguna/ (persetujuan akun)
+    │   ├── constants/        # Daftar izin fitur
+    │   ├── hooks/            # Custom hooks (useGoogleIdentity, useSortableData)
+    │   ├── pages/            # Halaman aplikasi + pages/auth (login, daftar, reset, verifikasi)
     │   ├── store/            # Zustand auth store
-    │   └── utils/            # Format Rupiah, Format Tanggal
+    │   └── utils/            # Format, aturan password, helper error & Google
     ├── vercel.json
     └── package.json
 ```
@@ -129,9 +145,17 @@ finstocks/
 
 | Method | Endpoint | Deskripsi | Auth |
 |---|---|---|---|
-| POST | `/api/auth/login` | Login | ❌ |
+| POST | `/api/auth/login` | Login (email/username + password) | ❌ |
+| POST | `/api/auth/google` | Login dengan akun Google | ❌ |
+| POST | `/api/auth/forgot-password` | Kirim link reset password ke email | ❌ |
+| POST | `/api/auth/reset-password` | Simpan password baru dari link email | ❌ |
 | GET | `/api/auth/me` | Profil user login | ✅ |
 | POST | `/api/auth/logout` | Logout | ✅ |
+| POST | `/api/pendaftaran` | Ajukan pendaftaran akun | ❌ |
+| POST | `/api/pendaftaran/verifikasi-email` | Verifikasi email pendaftar | ❌ |
+| GET | `/api/pendaftaran` | List permintaan akun | ✅ OWNER |
+| PUT | `/api/pendaftaran/:id/setujui` | Setujui & buat akun | ✅ OWNER |
+| PUT | `/api/pendaftaran/:id/tolak` | Tolak permintaan akun | ✅ OWNER |
 | GET/POST | `/api/transaksi` | List / Buat transaksi | ✅ |
 | GET/PUT/DELETE | `/api/transaksi/:id` | Detail / Update / Hapus | ✅ |
 | PUT | `/api/transaksi/:id/status` | Update status | ✅ OWNER |
@@ -163,7 +187,7 @@ finstocks/
 3. Set **Root Directory** = `frontend`
 4. Set **Build Command** = `npm run build`
 5. Set **Output Directory** = `dist`
-6. Tambahkan Environment Variable: `VITE_API_BASE_URL` = URL backend production
+6. Tambahkan Environment Variable: `VITE_API_BASE_URL` = URL backend production, `VITE_GOOGLE_CLIENT_ID` = Client ID Google
 
 ### Backend → Railway / Render
 
@@ -175,7 +199,9 @@ finstocks/
    - `JWT_SECRET` = Secret key untuk JWT
    - `JWT_EXPIRES_IN` = `8h`
    - `NODE_ENV` = `production`
-   - `FRONTEND_URL` = URL frontend Vercel
+   - `FRONTEND_URL` = URL frontend Vercel (juga dipakai untuk link di email)
+   - `GOOGLE_CLIENT_ID` = Client ID OAuth Google (tambahkan URL Vercel ke *Authorized JavaScript origins*)
+   - `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` = akun Gmail + App Password (wajib di production)
 5. Deploy
 
 ---

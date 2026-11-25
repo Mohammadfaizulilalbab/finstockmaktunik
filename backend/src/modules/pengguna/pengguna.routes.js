@@ -8,6 +8,7 @@ const { body } = require('express-validator');
 const penggunaController = require('./pengguna.controller');
 const authMiddleware = require('../../middlewares/auth.middleware');
 const { requireRole } = require('../../middlewares/role.middleware');
+const { passwordRule } = require('../../utils/passwordPolicy');
 
 // Semua route pengguna membutuhkan auth + role OWNER
 router.use(authMiddleware);
@@ -24,8 +25,8 @@ router.post('/', [
   body('nama').notEmpty().withMessage('Nama wajib diisi'),
   body('username').notEmpty().withMessage('Username wajib diisi')
     .isLength({ min: 3 }).withMessage('Username minimal 3 karakter'),
-  body('password').notEmpty().withMessage('Password wajib diisi')
-    .isLength({ min: 6 }).withMessage('Password minimal 6 karakter'),
+  body('email').optional({ values: 'falsy' }).trim().isEmail().withMessage('Format email tidak valid'),
+  passwordRule('password'),
   body('role').optional().isIn(['OWNER', 'KARYAWAN']).withMessage('Role harus OWNER atau KARYAWAN'),
 ], penggunaController.create);
 
@@ -33,6 +34,7 @@ router.post('/', [
 router.put('/:id', [
   body('nama').optional().notEmpty().withMessage('Nama tidak boleh kosong'),
   body('username').optional().isLength({ min: 3 }).withMessage('Username minimal 3 karakter'),
+  body('email').optional({ values: 'falsy' }).trim().isEmail().withMessage('Format email tidak valid'),
   body('role').optional().isIn(['OWNER', 'KARYAWAN']).withMessage('Role harus OWNER atau KARYAWAN'),
   body('status').optional().isIn(['AKTIF', 'NONAKTIF']).withMessage('Status harus AKTIF atau NONAKTIF'),
 ], penggunaController.update);
@@ -42,8 +44,7 @@ router.delete('/:id', penggunaController.remove);
 
 // PUT /api/pengguna/:id/reset-password — Reset password
 router.put('/:id/reset-password', [
-  body('newPassword').notEmpty().withMessage('Password baru wajib diisi')
-    .isLength({ min: 6 }).withMessage('Password baru minimal 6 karakter'),
+  passwordRule('newPassword'),
 ], penggunaController.resetPassword);
 
 module.exports = router;

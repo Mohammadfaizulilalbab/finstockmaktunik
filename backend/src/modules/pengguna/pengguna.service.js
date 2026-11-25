@@ -4,20 +4,39 @@
 // Logika bisnis untuk manajemen pengguna (CRUD + reset password)
 
 const prisma = require('../../config/db');
-const bcrypt = require('bcryptjs');
+const { hashPassword } = require('../../utils/password');
+const { normalisasiEmail } = require('../../utils/email');
+
+const SELECT_PENGGUNA = {
+  id: true, nama: true, username: true, email: true, googleId: true, role: true,
+  permissions: true, status: true, createdAt: true, updatedAt: true,
+};
+
+// Jangan kirim Google ID ke client, cukup status tertaut atau tidak
+const formatPengguna = ({ googleId, ...data }) => ({ ...data, googleTerhubung: Boolean(googleId) });
+
+/**
+ * Pastikan email belum dipakai pengguna lain
+ */
+const pastikanEmailUnik = async (email, kecualiId = null) => {
+  if (!email) return;
+  const existing = await prisma.pengguna.findFirst({
+    where: { email, ...(kecualiId ? { NOT: { id: kecualiId } } : {}) },
+  });
+  if (existing) {
+    throw { status: 400, message: 'Email sudah digunakan', code: 'EMAIL_EXISTS' };
+  }
+};
 
 /**
  * Ambil semua pengguna (tanpa password)
  */
 const getAll = async () => {
   const pengguna = await prisma.pengguna.findMany({
-    select: {
-      id: true, nama: true, username: true, role: true,
-      permissions: true, status: true, createdAt: true, updatedAt: true,
-    },
+    select: SELECT_PENGGUNA,
     orderBy: { createdAt: 'desc' },
   });
-  return pengguna;
+  return pengguna.map(formatPengguna);
 };
 
 /**
@@ -26,15 +45,12 @@ const getAll = async () => {
 const getById = async (id) => {
   const pengguna = await prisma.pengguna.findUnique({
     where: { id: parseInt(id) },
-    select: {
-      id: true, nama: true, username: true, role: true,
-      permissions: true, status: true, createdAt: true, updatedAt: true,
-    },
+    select: SELECT_PENGGUNA,
   });
   if (!pengguna) {
     throw { status: 404, message: 'Pengguna tidak ditemukan', code: 'USER_NOT_FOUND' };
   }
-  return pengguna;
+  return formatPengguna(pengguna);
 };
 
 /**
@@ -49,13 +65,17 @@ const create = async (data) => {
     throw { status: 400, message: 'Username sudah digunakan', code: 'USERNAME_EXISTS' };
   }
 
+  const email = normalisasiEmail(data.email);
+  await pastikanEmailUnik(email);
+
   // Hash password
-  const hashedPassword = await bcrypt.hash(data.password, 10);
+  const hashedPassword = await hashPassword(data.password);
 
   const pengguna = await prisma.pengguna.create({
     data: {
       nama: data.nama,
       username: data.username,
+      email,
       password: hashedPassword,
       role: data.role || 'KARYAWAN',
       permissions: data.permissions || [],
@@ -63,9 +83,7 @@ const create = async (data) => {
     },
   });
 
-  // Return tanpa password
-  const { password: _, ...userData } = pengguna;
-  return userData;
+  return getById(pengguna.id);
 };
 
 /**
@@ -73,7 +91,7 @@ const create = async (data) => {
  */
 const update = async (id, data) => {
   // Cek pengguna ada
-  await getById(id);
+  const lama = await getById(id);
 
   // Jika username diubah, cek unik
   if (data.username) {
@@ -86,19 +104,25 @@ const update = async (id, data) => {
   }
 
   const updateData = {};
+  // Email kosong ("") berarti email dihapus
+  if (data.email !== undefined) {
+    updateData.email = normalisasiEmail(data.email);
+    await pastikanEmailUnik(updateData.email, parseInt(id));
+    // Email berganti → lepas tautan akun Google lama
+    if (updateData.email !== lama.email) updateData.googleId = null;
+  }
   if (data.nama) updateData.nama = data.nama;
   if (data.username) updateData.username = data.username;
   if (data.role) updateData.role = data.role;
   if (data.permissions !== undefined) updateData.permissions = data.permissions;
   if (data.status) updateData.status = data.status;
 
-  const pengguna = await prisma.pengguna.update({
+  await prisma.pengguna.update({
     where: { id: parseInt(id) },
     data: updateData,
   });
 
-  const { password: _, ...userData } = pengguna;
-  return userData;
+  return getById(id);
 };
 
 /**
@@ -120,7 +144,7 @@ const remove = async (id) => {
 const resetPassword = async (id, newPassword) => {
   await getById(id);
 
-  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  const hashedPassword = await hashPassword(newPassword);
   await prisma.pengguna.update({
     where: { id: parseInt(id) },
     data: { password: hashedPassword },

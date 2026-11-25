@@ -4,6 +4,7 @@
 // Logika bisnis untuk dashboard: summary, grafik, menu terlaris, stok kritis
 
 const prisma = require('../../config/db');
+const { formatTanggalLokal } = require('../../utils/tanggal');
 
 /**
  * Ambil summary dashboard hari ini
@@ -69,7 +70,7 @@ const getGrafik = async () => {
     const namaHari = date.toLocaleDateString('id-ID', { weekday: 'short' });
 
     data.push({
-      tanggal: date.toISOString().split('T')[0],
+      tanggal: formatTanggalLokal(date),
       hari: namaHari,
       pendapatan: Number(pendapatan._sum.total || 0),
       pengeluaran: Number(pengeluaran._sum.jumlah || 0),

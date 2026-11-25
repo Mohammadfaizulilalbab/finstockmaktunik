@@ -20,10 +20,13 @@ const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange }) => 
     pageNumbers.push(i);
   }
 
+  const start = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const end = Math.min(currentPage * itemsPerPage, totalItems);
+
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between py-3 px-4 bg-neutral-100/50 border-t border-neutral-100 rounded-b-xl gap-4">
       <div className="text-xs text-neutral-500 font-medium">
-        {totalItems} data
+        Showing {start}–{end} of {totalItems} records
       </div>
       
       <div className="flex items-center gap-1">
@@ -59,7 +62,7 @@ const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange }) => 
       </div>
 
       <div className="text-xs text-neutral-500 font-medium">
-        Halaman {currentPage} dari {totalPages}
+        Page {currentPage} of {totalPages}
       </div>
     </div>
   );

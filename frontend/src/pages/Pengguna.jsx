@@ -9,6 +9,11 @@ import Modal from '../components/ui/Modal';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import Input from '../components/ui/Input';
 import Pagination from '../components/ui/Pagination';
+import PasswordChecklist from '../components/auth/PasswordChecklist';
+import IzinAksesCheckboxes from '../components/pengguna/IzinAksesCheckboxes';
+import PermintaanAkunPanel from '../components/pengguna/PermintaanAkunPanel';
+import { FITUR_DEFAULT_KARYAWAN } from '../constants/permissions';
+import { isPasswordValid } from '../utils/passwordPolicy';
 
 const Pengguna = () => {
   const [pengguna, setPengguna] = useState([]);
@@ -16,7 +21,7 @@ const Pengguna = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
 
   // Modals state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,6 +30,7 @@ const Pengguna = () => {
   const [formData, setFormData] = useState({
     nama: '',
     username: '',
+    email: '',
     password: '',
     role: 'KARYAWAN',
     status: 'AKTIF',
@@ -63,6 +69,7 @@ const Pengguna = () => {
       setFormData({
         nama: user.nama,
         username: user.username,
+        email: user.email || '',
         role: user.role,
         status: user.status,
         password: '', // Kosongkan password saat edit
@@ -72,9 +79,11 @@ const Pengguna = () => {
       setFormData({
         nama: '',
         username: '',
+        email: '',
         password: '',
         role: 'KARYAWAN',
         status: 'AKTIF',
+        permissions: FITUR_DEFAULT_KARYAWAN
       });
     }
     setIsModalOpen(true);
@@ -84,8 +93,8 @@ const Pengguna = () => {
     e.preventDefault();
     try {
       if (modalType === 'TAMBAH') {
-        if (!formData.password) {
-          toast.error('Password wajib diisi untuk pengguna baru');
+        if (!isPasswordValid(formData.password)) {
+          toast.error('Password belum memenuhi semua syarat');
           return;
         }
         await axiosInstance.post('/pengguna', formData);
@@ -114,8 +123,8 @@ const Pengguna = () => {
 
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (resetPasswordData.newPassword.length < 6) {
-      toast.error('Password minimal 6 karakter');
+    if (!isPasswordValid(resetPasswordData.newPassword)) {
+      toast.error('Password belum memenuhi semua syarat');
       return;
     }
     try {
@@ -153,39 +162,24 @@ const Pengguna = () => {
     </Card>
   );
 
-  const handleTogglePermission = (path) => {
-    setFormData(prev => {
-      const current = prev.permissions || [];
-      if (current.includes(path)) {
-        return { ...prev, permissions: current.filter(p => p !== path) };
-      } else {
-        return { ...prev, permissions: [...current, path] };
-      }
-    });
-  };
-
-  const availableFeatures = [
-    { id: '/', label: 'Dashboard' },
-    { id: '/kasir', label: 'Kasir' },
-    { id: '/transaksi', label: 'Riwayat Transaksi' },
-    { id: '/pengeluaran', label: 'Pengeluaran' },
-    { id: '/menu', label: 'Menu Makanan' },
-    { id: '/persediaan', label: 'Stok Persediaan' },
-    { id: '/laporan', label: 'Laporan Keuangan' },
-    { id: '/vendor', label: 'Kelola Vendor' },
-    { id: '/pengaturan', label: 'Pengaturan' }
-  ];
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <h1 className="text-xl font-bold text-neutral-800">Manajemen Pengguna</h1>
-        <button 
+      {/* Pengguna header */}
+      <div className="flex justify-between items-center bg-white p-5 rounded-xl border border-[#c3c6cf]/30 shadow-sm">
+        <div>
+          <h3 className="text-sm font-bold text-[#002444] uppercase tracking-wider mb-1">
+            Manajemen Akun Pengguna
+          </h3>
+          <p className="text-xs text-[#73777f]">Kelola akun kasir dan owner, reset password, serta konfigurasikan izin akses fitur.</p>
+        </div>
+
+        <button
           onClick={() => openModal('TAMBAH')}
-          className="bg-[#1e3251] text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-slate-800"
+          className="px-4 py-2 bg-[#006c4e] text-white rounded-lg font-bold text-xs hover:bg-[#00513a] flex items-center gap-1 transition-colors"
         >
           <Plus size={16} />
-          Tambah Pengguna
+          <span>Tambah Pengguna</span>
         </button>
       </div>
 
@@ -194,8 +188,8 @@ const Pengguna = () => {
           title="TOTAL PENGGUNA" 
           value={`${pengguna.length} Orang`} 
           subtitle="Terdaftar di sistem"
-          subtitleColorClass="text-teal-500"
-          topBorderColor="indigo"
+          subtitleColorClass="text-[#006c4e]"
+          topBorderColor="primary"
         />
         <StatCard 
           title="ADMIN / OWNER" 
@@ -213,15 +207,17 @@ const Pengguna = () => {
         />
       </div>
 
+      <PermintaanAkunPanel onAkunDibuat={fetchPengguna} />
+
       <Card title="Daftar Pengguna Sistem" noPadding>
-        <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3">
-          <input type="text" placeholder="Cari nama atau username..." className="flex-1 min-w-[200px] px-3 py-1.5 border border-neutral-200 rounded-md text-sm outline-none focus:border-teal-500" />
-          <select className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none">
+        <div className="p-4 border-b border-[#c3c6cf]/30 flex flex-wrap gap-3 bg-white">
+          <input type="text" placeholder="Cari nama atau username..." className="flex-1 min-w-[200px] px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm outline-none focus:border-[#002444] text-[#191c1e] transition-colors" />
+          <select className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer">
             <option>Semua Role</option>
             <option>Owner</option>
             <option>Karyawan</option>
           </select>
-          <select className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none">
+          <select className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer">
             <option>Semua Status</option>
             <option>Aktif</option>
             <option>Nonaktif</option>
@@ -229,45 +225,58 @@ const Pengguna = () => {
         </div>
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-xs text-left border-collapse bg-white">
             <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50/50">
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">ID</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">NAMA LENGKAP</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">USERNAME</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">ROLE</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">STATUS</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">LOGIN TERAKHIR</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-right">AKSI</th>
+              <tr className="bg-[#f8f9fb] border-b border-[#c3c6cf]/30 text-[#43474e]">
+                <th className="py-3 px-6 font-semibold">ID</th>
+                <th className="py-3 px-6 font-semibold">NAMA LENGKAP</th>
+                <th className="py-3 px-6 font-semibold">USERNAME</th>
+                <th className="py-3 px-6 font-semibold">EMAIL</th>
+                <th className="py-3 px-6 font-semibold">ROLE</th>
+                <th className="py-3 px-6 font-semibold">STATUS</th>
+                <th className="py-3 px-6 font-semibold">LOGIN TERAKHIR</th>
+                <th className="py-3 px-6 font-semibold text-right">AKSI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-50 text-neutral-600">
+            <tbody className="divide-y divide-[#c3c6cf]/20 font-medium text-neutral-600">
               {pengguna.length > 0 ? pengguna.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((user, idx) => (
-                <tr key={user.id || idx} className="even:bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
-                  <td className="py-3 px-6 text-xs text-[#1e3251] font-medium">#U-00{user.id || idx+1}</td>
-                  <td className="py-3 px-6 text-xs font-semibold flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center text-[10px] font-bold">
+                <tr key={user.id || idx} className="hover:bg-[#f8f9fb] transition-colors">
+                  <td className="py-4 px-6 text-xs text-neutral-500 font-mono">#U-00{user.id || idx+1}</td>
+                  <td className="py-4 px-6 text-xs font-bold text-[#002444] flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-[#002444]/10 text-[#002444] flex items-center justify-center text-[10px] font-bold">
                       {user.nama ? user.nama.charAt(0) : 'U'}
                     </div>
                     {user.nama}
                   </td>
-                  <td className="py-3 px-6 text-xs text-neutral-500">{user.username}</td>
-                  <td className="py-3 px-6 text-xs">
-                    <Badge variant={user.role === 'OWNER' ? 'primary' : 'neutral'}>
+                  <td className="py-4 px-6 text-xs text-neutral-500">{user.username}</td>
+                  <td className="py-4 px-6 text-xs text-neutral-500">
+                    <span className="block whitespace-nowrap">{user.email || '-'}</span>
+                    {user.googleTerhubung && <span className="text-[10px] font-semibold text-[#006c4e]">Google terhubung</span>}
+                  </td>
+                  <td className="py-4 px-6 text-xs">
+                    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[10px] font-bold border-none ${
+                      user.role === 'OWNER' 
+                        ? 'bg-[#002444] text-white' 
+                        : 'bg-neutral-100 text-neutral-700'
+                    }`}>
                       {user.role}
-                    </Badge>
+                    </span>
                   </td>
-                  <td className="py-3 px-6 text-xs">
-                    <Badge variant={user.status === 'NONAKTIF' ? 'danger' : 'success'}>
+                  <td className="py-4 px-6 text-xs">
+                    <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-[10px] font-bold border-none ${
+                      user.status === 'NONAKTIF' 
+                        ? 'bg-[#ffdad6] text-[#ba1a1a]' 
+                        : 'bg-[#83f5c6] text-[#006c4e]'
+                    }`}>
                       {user.status || 'AKTIF'}
-                    </Badge>
+                    </span>
                   </td>
-                  <td className="py-3 px-6 text-xs text-neutral-500">{user.lastLogin || '-'}</td>
-                  <td className="py-3 px-6 text-right">
+                  <td className="py-4 px-6 text-xs text-neutral-500 font-mono">{user.lastLogin || '-'}</td>
+                  <td className="py-4 px-6 text-right">
                     <div className="flex justify-end gap-2">
                       <button 
                         onClick={() => openModal('EDIT', user)}
-                        className="text-[10px] font-medium text-[#1e3251] hover:text-white hover:bg-[#1e3251] border border-[#1e3251] px-3 py-1.5 rounded transition-colors"
+                        className="text-[10px] font-medium text-[#653e00] hover:text-white hover:bg-[#653e00] border border-[#653e00] px-3 py-1.5 rounded transition-colors"
                       >
                         Edit
                       </button>
@@ -277,7 +286,7 @@ const Pengguna = () => {
                           setResetPasswordData({ newPassword: '' });
                           setIsResetModalOpen(true);
                         }}
-                        className="text-[10px] font-medium text-amber-500 hover:text-white hover:bg-amber-500 border border-amber-500 px-3 py-1.5 rounded transition-colors"
+                        className="text-[10px] font-medium text-[#002444] hover:text-white hover:bg-[#002444] border border-[#002444] px-3 py-1.5 rounded transition-colors"
                       >
                         Reset Password
                       </button>
@@ -287,7 +296,7 @@ const Pengguna = () => {
                             setConfirmData({ id: user.id, action: 'AKTIFKAN' });
                             setIsConfirmOpen(true);
                           }}
-                          className="text-[10px] font-medium text-green-500 hover:text-white hover:bg-green-500 border border-green-500 px-3 py-1.5 rounded transition-colors"
+                          className="text-[10px] font-medium text-[#006c4e] hover:text-white hover:bg-[#006c4e] border border-[#006c4e] px-3 py-1.5 rounded transition-colors"
                         >
                           Aktifkan
                         </button>
@@ -297,7 +306,7 @@ const Pengguna = () => {
                             setConfirmData({ id: user.id, action: 'NONAKTIFKAN' });
                             setIsConfirmOpen(true);
                           }}
-                          className="text-[10px] font-medium text-red-500 hover:text-white hover:bg-red-500 border border-red-500 px-3 py-1.5 rounded transition-colors"
+                          className="text-[10px] font-medium text-[#ba1a1a] hover:text-white hover:bg-[#ba1a1a] border border-[#ba1a1a] px-3 py-1.5 rounded transition-colors"
                         >
                           Nonaktifkan
                         </button>
@@ -307,7 +316,7 @@ const Pengguna = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan="7" className="py-4 text-center text-xs text-neutral-500">Belum ada data pengguna</td>
+                  <td colSpan="8" className="py-4 text-center text-xs text-neutral-500">No data available.</td>
                 </tr>
               )}
             </tbody>
@@ -341,20 +350,33 @@ const Pengguna = () => {
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
             required
           />
-          {modalType === 'TAMBAH' && (
-            <Input 
-              label="Password" 
-              type="password"
-              placeholder="Minimal 6 karakter"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required={modalType === 'TAMBAH'}
+          <div>
+            <Input
+              label="Email (opsional)"
+              type="email"
+              placeholder="nama@gmail.com"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
+            <p className="text-[10px] text-neutral-500 mt-1">Dipakai untuk masuk dengan Google dan fitur lupa password.</p>
+          </div>
+          {modalType === 'TAMBAH' && (
+            <div>
+              <Input
+                label="Password"
+                type="password"
+                placeholder="Buat password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                required
+              />
+              <PasswordChecklist password={formData.password} />
+            </div>
           )}
           <div>
             <label className="block text-sm font-medium text-neutral-700 mb-1">Role Akses</label>
             <select 
-              className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full px-3 py-2 border border-neutral-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#002444]"
               value={formData.role}
               onChange={(e) => setFormData({ ...formData, role: e.target.value })}
             >
@@ -364,23 +386,10 @@ const Pengguna = () => {
           </div>
 
           {formData.role === 'KARYAWAN' && (
-            <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-2">Izin Akses Fitur</label>
-              <div className="grid grid-cols-2 gap-2 border border-neutral-200 rounded-md p-3 max-h-48 overflow-y-auto bg-neutral-50/50">
-                {availableFeatures.map(feature => (
-                  <label key={feature.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-white p-1.5 rounded transition-colors">
-                    <input 
-                      type="checkbox" 
-                      className="rounded text-teal-600 focus:ring-teal-500 w-4 h-4"
-                      checked={(formData.permissions || []).includes(feature.id)}
-                      onChange={() => handleTogglePermission(feature.id)}
-                    />
-                    <span className="text-neutral-700">{feature.label}</span>
-                  </label>
-                ))}
-              </div>
-              <p className="text-[10px] text-neutral-500 mt-1">* Akun dengan role OWNER otomatis mendapatkan akses penuh ke semua fitur.</p>
-            </div>
+            <IzinAksesCheckboxes
+              value={formData.permissions || []}
+              onChange={(permissions) => setFormData({ ...formData, permissions })}
+            />
           )}
 
           <div className="flex gap-3 justify-end pt-4 mt-6 border-t border-neutral-100">
@@ -400,14 +409,17 @@ const Pengguna = () => {
         title={`Reset Password ${selectedUser?.nama}`}
       >
         <form onSubmit={handleResetPassword} className="space-y-4">
-          <Input 
-            label="Password Baru" 
-            type="password"
-            placeholder="Masukkan password baru (min. 6 karakter)"
-            value={resetPasswordData.newPassword}
-            onChange={(e) => setResetPasswordData({ newPassword: e.target.value })}
-            required
-          />
+          <div>
+            <Input
+              label="Password Baru"
+              type="password"
+              placeholder="Masukkan password baru"
+              value={resetPasswordData.newPassword}
+              onChange={(e) => setResetPasswordData({ newPassword: e.target.value })}
+              required
+            />
+            <PasswordChecklist password={resetPasswordData.newPassword} />
+          </div>
           <div className="flex gap-3 justify-end pt-4 mt-6 border-t border-neutral-100">
             <Button type="button" variant="outline" onClick={() => setIsResetModalOpen(false)}>
               Batal

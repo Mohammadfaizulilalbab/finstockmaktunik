@@ -4,6 +4,7 @@
 // Logika bisnis untuk manajemen transaksi penjualan
 
 const prisma = require('../../config/db');
+const { parseTanggalLokal } = require('../../utils/tanggal');
 
 /**
  * Generate kode transaksi otomatis format #T-XXXX
@@ -36,9 +37,9 @@ const getAll = async (query) => {
   if (metode) where.metode = metode;
   if (tanggalMulai || tanggalSelesai) {
     where.waktu = {};
-    if (tanggalMulai) where.waktu.gte = new Date(tanggalMulai);
+    if (tanggalMulai) where.waktu.gte = parseTanggalLokal(tanggalMulai);
     if (tanggalSelesai) {
-      const endDate = new Date(tanggalSelesai);
+      const endDate = parseTanggalLokal(tanggalSelesai);
       endDate.setHours(23, 59, 59, 999);
       where.waktu.lte = endDate;
     }

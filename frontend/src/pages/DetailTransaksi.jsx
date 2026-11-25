@@ -58,46 +58,49 @@ const DetailTransaksi = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div></div>;
+    return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#002444]"></div></div>;
   }
 
   if (!transaksi) return null;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center bg-white p-5 rounded-xl border border-[#c3c6cf]/30 shadow-sm">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => navigate('/transaksi')}
-            className="p-2 rounded-full hover:bg-neutral-200 transition-colors"
+            className="p-2 rounded-full hover:bg-[#002444]/5 text-[#002444] transition-colors"
           >
-            <ArrowLeft size={20} className="text-neutral-600" />
+            <ArrowLeft size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-neutral-800">Detail Transaksi</h1>
-            <p className="text-neutral-500">{transaksi.kodeTransaksi}</p>
+            <h3 className="text-sm font-bold text-[#002444] uppercase tracking-wider mb-1">
+              Detail Transaksi Penjualan
+            </h3>
+            <p className="text-xs text-[#73777f]">Kode Transaksi: <span className="font-mono font-bold text-[#002444]">{transaksi.kodeTransaksi}</span></p>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
           {/* Status update buttons - ONLY FOR OWNER */}
           {isOwner && transaksi.status !== 'BATAL' && (
-            <Button 
-              variant="danger" 
-              size="sm" 
-              className="flex items-center gap-1"
+            <button 
+              className="px-4 py-2 bg-[#ba1a1a] text-white rounded-lg font-bold text-xs hover:bg-[#ba1a1a]/90 flex items-center gap-1 transition-colors"
               onClick={() => handleStatusClick('BATAL')}
             >
-              <XCircle size={16} /> Batalkan
-            </Button>
+              <XCircle size={16} /> <span>Batalkan</span>
+            </button>
           )}
           
-          <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => {
-            exportStrukPDF(transaksi);
-            toast.success('Struk berhasil di-download');
-          }}>
-            <Printer size={16} /> Cetak Struk
-          </Button>
+          <button 
+            className="px-4 py-2 border border-[#002444] text-[#002444] rounded-lg font-bold text-xs bg-white hover:bg-[#002444]/5 flex items-center gap-2 transition-colors"
+            onClick={() => {
+              exportStrukPDF(transaksi);
+              toast.success('Struk berhasil di-download');
+            }}
+          >
+            <Printer size={16} /> <span>Cetak Struk</span>
+          </button>
         </div>
       </div>
 
@@ -106,27 +109,27 @@ const DetailTransaksi = () => {
           <Card title="Daftar Pesanan">
             <div className="space-y-4">
               {transaksi.items.map((item, index) => (
-                <div key={index} className="flex justify-between items-center py-2 border-b border-neutral-100 last:border-0">
+                <div key={index} className="flex justify-between items-center py-2 border-b border-[#c3c6cf]/30 last:border-0">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary-50 text-primary-700 flex items-center justify-center font-bold rounded-lg">
+                    <div className="w-10 h-10 bg-[#002444]/10 text-[#002444] flex items-center justify-center font-bold font-mono rounded-lg text-xs">
                       {item.qty}x
                     </div>
                     <div>
-                      <h4 className="font-medium text-neutral-800">{item.menu.nama}</h4>
-                      <p className="text-sm text-neutral-500">{formatRupiah(item.hargaSatuan)}</p>
+                      <h4 className="font-bold text-[#002444] text-xs">{item.menu.nama}</h4>
+                      <p className="text-xs text-neutral-500 font-mono">{formatRupiah(item.hargaSatuan)}</p>
                     </div>
                   </div>
-                  <div className="font-semibold text-neutral-800">
+                  <div className="font-bold font-mono text-[#002444] text-xs">
                     {formatRupiah(item.subtotal)}
                   </div>
                 </div>
               ))}
             </div>
             
-            <div className="mt-6 pt-4 border-t-2 border-neutral-200">
+            <div className="mt-6 pt-4 border-t-2 border-[#c3c6cf]/30">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-bold text-neutral-800">Total Pembayaran</span>
-                <span className="text-2xl font-bold text-primary-600">{formatRupiah(transaksi.total)}</span>
+                <span className="text-sm font-bold text-neutral-800">Total Pembayaran</span>
+                <span className="text-xl font-bold font-mono text-[#002444]">{formatRupiah(transaksi.total)}</span>
               </div>
             </div>
           </Card>
@@ -136,34 +139,34 @@ const DetailTransaksi = () => {
           <Card title="Informasi Transaksi">
             <div className="space-y-4">
               <div>
-                <p className="text-sm text-neutral-500 mb-1">Status</p>
-                {transaksi.status === 'SELESAI' && <Badge variant="success" className="text-sm py-1 px-3">Selesai</Badge>}
-                {transaksi.status === 'PENDING' && <Badge variant="warning" className="text-sm py-1 px-3">Pending</Badge>}
-                {transaksi.status === 'BATAL' && <Badge variant="danger" className="text-sm py-1 px-3">Dibatalkan</Badge>}
+                <p className="text-xs text-neutral-500 mb-1">Status</p>
+                {transaksi.status === 'SELESAI' && <Badge variant="success" className="text-xs py-1 px-3">Selesai</Badge>}
+                {transaksi.status === 'PENDING' && <Badge variant="warning" className="text-xs py-1 px-3">Pending</Badge>}
+                {transaksi.status === 'BATAL' && <Badge variant="danger" className="text-xs py-1 px-3">Dibatalkan</Badge>}
               </div>
               
               <div>
-                <p className="text-sm text-neutral-500 mb-1">Tanggal & Waktu</p>
-                <div className="flex items-center gap-2 text-neutral-800 font-medium">
+                <p className="text-xs text-neutral-500 mb-1">Tanggal & Waktu</p>
+                <div className="flex items-center gap-2 text-neutral-800 font-medium text-xs">
                   <Clock size={16} className="text-neutral-400" />
                   {formatTanggalWaktu(transaksi.waktu)}
                 </div>
               </div>
               
               <div>
-                <p className="text-sm text-neutral-500 mb-1">Metode Pembayaran</p>
-                <p className="text-neutral-800 font-medium">{transaksi.metode}</p>
+                <p className="text-xs text-neutral-500 mb-1">Metode Pembayaran</p>
+                <p className="text-[#002444] font-bold text-xs">{transaksi.metode}</p>
               </div>
               
               <div>
-                <p className="text-sm text-neutral-500 mb-1">Kasir</p>
-                <p className="text-neutral-800 font-medium">{transaksi.kasir.nama}</p>
+                <p className="text-xs text-neutral-500 mb-1">Kasir</p>
+                <p className="text-[#002444] font-bold text-xs">{transaksi.kasir.nama}</p>
               </div>
               
               {transaksi.catatan && (
                 <div>
-                  <p className="text-sm text-neutral-500 mb-1">Catatan</p>
-                  <div className="bg-neutral-50 p-3 rounded-lg text-sm text-neutral-700 italic border border-neutral-100">
+                  <p className="text-xs text-neutral-500 mb-1">Catatan</p>
+                  <div className="bg-neutral-50 p-3 rounded-lg text-xs text-neutral-700 italic border border-[#c3c6cf]/30">
                     "{transaksi.catatan}"
                   </div>
                 </div>

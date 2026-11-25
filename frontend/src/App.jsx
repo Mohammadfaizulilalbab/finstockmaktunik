@@ -4,10 +4,18 @@
 
 import { Routes, Route, Navigate } from 'react-router-dom';
 import PrivateRoute from './components/layout/PrivateRoute';
+import GuestRoute from './components/layout/GuestRoute';
 import RoleGuard from './components/layout/RoleGuard';
+import AuthLayout from './components/auth/AuthLayout';
 
-// Pages
-import Login from './pages/Login';
+// Pages — autentikasi
+import Login from './pages/auth/Login';
+import Daftar from './pages/auth/Daftar';
+import LupaPassword from './pages/auth/LupaPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+import VerifikasiEmail from './pages/auth/VerifikasiEmail';
+
+// Pages — aplikasi
 import Dashboard from './pages/Dashboard';
 import Transaksi from './pages/Transaksi';
 import Kasir from './pages/Kasir';
@@ -24,8 +32,19 @@ import Pengeluaran from './pages/Pengeluaran';
 function App() {
   return (
     <Routes>
-      {/* Route publik */}
-      <Route path="/login" element={<Login />} />
+      {/* Route publik — semua memakai AuthLayout */}
+      <Route element={<AuthLayout />}>
+        {/* Khusus tamu: pengguna yang sudah login diarahkan ke dashboard */}
+        <Route element={<GuestRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/daftar" element={<Daftar />} />
+          <Route path="/lupa-password" element={<LupaPassword />} />
+        </Route>
+
+        {/* Dibuka dari link email, bisa diakses kapan saja */}
+        <Route path="/verifikasi-email" element={<VerifikasiEmail />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+      </Route>
 
       {/* Route private (butuh auth) — semua route di bawah ini punya DashboardLayout */}
       <Route path="/" element={<PrivateRoute />}>

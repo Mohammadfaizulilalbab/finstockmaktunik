@@ -35,13 +35,17 @@ axiosInstance.interceptors.request.use(
 // ============================================
 // Response Interceptor
 // ============================================
-// Jika response 401 (Unauthorized), hapus token dan redirect ke login
+// Jika response 401 (Unauthorized) untuk request yang membawa token
+// (artinya sesi habis/tidak valid), hapus token dan redirect ke login.
+// Request publik (login, daftar, reset password) tidak ikut di-redirect
+// agar pesan error-nya bisa ditampilkan di halaman tersebut.
 axiosInstance.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
+    const membawaToken = Boolean(error.config?.headers?.Authorization);
+    if (error.response && error.response.status === 401 && membawaToken) {
       // Hapus token dari localStorage
       localStorage.removeItem('finstocks_token');
       localStorage.removeItem('finstocks_user');

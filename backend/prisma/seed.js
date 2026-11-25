@@ -11,6 +11,8 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
+const { SEMUA_FITUR, FITUR_DEFAULT_KARYAWAN } = require('../src/config/permissions');
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -21,41 +23,52 @@ async function main() {
   // ============================================
   console.log('👤 Membuat data pengguna...');
 
-  const ownerPassword = await bcrypt.hash('Admin123!', 10);
-  const karyawanPassword = await bcrypt.hash('Karyawan123!', 10);
+  const ownerPassword = await bcrypt.hash('Owner123', 10);
+  const karyawanPassword = await bcrypt.hash('Karyawan123', 10);
 
   const owner = await prisma.pengguna.upsert({
-    where: { username: 'owner_admin' },
-    update: {},
+    where: { username: 'owner' },
+    update: {
+      permissions: SEMUA_FITUR,
+    },
     create: {
       nama: 'Admin Owner',
-      username: 'owner_admin',
+      username: 'owner',
       password: ownerPassword,
       role: 'OWNER',
+      permissions: SEMUA_FITUR,
       status: 'AKTIF',
     },
   });
 
+  const defaultKaryawanPermissions = FITUR_DEFAULT_KARYAWAN;
+
   const karyawan1 = await prisma.pengguna.upsert({
-    where: { username: 'budi_s' },
-    update: {},
+    where: { username: 'karyawan1' },
+    update: {
+      permissions: defaultKaryawanPermissions,
+    },
     create: {
       nama: 'Budi Santoso',
-      username: 'budi_s',
+      username: 'karyawan1',
       password: karyawanPassword,
       role: 'KARYAWAN',
+      permissions: defaultKaryawanPermissions,
       status: 'AKTIF',
     },
   });
 
   const karyawan2 = await prisma.pengguna.upsert({
-    where: { username: 'sari_s' },
-    update: {},
+    where: { username: 'karyawan2' },
+    update: {
+      permissions: defaultKaryawanPermissions,
+    },
     create: {
       nama: 'Sari Sulistyowati',
-      username: 'sari_s',
+      username: 'karyawan2',
       password: karyawanPassword,
       role: 'KARYAWAN',
+      permissions: defaultKaryawanPermissions,
       status: 'AKTIF',
     },
   });
@@ -231,9 +244,9 @@ async function main() {
   console.log(`   Log       : ${logData.length}`);
   console.log('====================================\n');
   console.log('📌 Akun default:');
-  console.log('   Owner    → username: owner_admin / password: Admin123!');
-  console.log('   Karyawan → username: budi_s / password: Karyawan123!');
-  console.log('   Karyawan → username: sari_s / password: Karyawan123!\n');
+  console.log('   Owner    → username: owner / password: Owner123');
+  console.log('   Karyawan → username: karyawan1 / password: Karyawan123');
+  console.log('   Karyawan → username: karyawan2 / password: Karyawan123\n');
 }
 
 main()

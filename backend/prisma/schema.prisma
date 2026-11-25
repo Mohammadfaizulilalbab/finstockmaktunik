@@ -15,20 +15,48 @@ datasource db {
 
 // Tabel Pengguna (Owner & Karyawan)
 model Pengguna {
-  id           Int            @id @default(autoincrement())
-  nama         String
-  username     String         @unique
-  password     String
-  role         Role           @default(KARYAWAN)
-  permissions  Json?          // Array of accessible modules like ["/kasir", "/transaksi"]
-  status       StatusAkun     @default(AKTIF)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  transaksi    Transaksi[]
-  logAktivitas LogAktivitas[]
+  id                  Int               @id @default(autoincrement())
+  nama                String
+  username            String            @unique
+  email               String?           @unique
+  googleId            String?           @unique // "sub" dari akun Google yang ditautkan
+  password            String
+  role                Role              @default(KARYAWAN)
+  permissions         Json? // Array of accessible modules like ["/kasir", "/transaksi"]
+  status              StatusAkun        @default(AKTIF)
+  resetTokenHash      String?           @unique // SHA-256 dari token reset password
+  resetTokenExpires   DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  transaksi           Transaksi[]
+  logAktivitas        LogAktivitas[]
+  pendaftaranDitinjau PendaftaranAkun[]
 
   @@index([role])
   @@index([status])
+}
+
+// Tabel Permintaan Pendaftaran Akun (menunggu persetujuan Owner/Superadmin)
+model PendaftaranAkun {
+  id                Int               @id @default(autoincrement())
+  nama              String
+  email             String
+  username          String
+  password          String // sudah di-hash
+  googleId          String? // terisi jika email diverifikasi lewat Google
+  status            StatusPendaftaran @default(BELUM_VERIFIKASI)
+  verifikasiHash    String?           @unique // SHA-256 dari token verifikasi email
+  verifikasiExpires DateTime?
+  alasanTolak       String?           @db.Text
+  peninjau          Pengguna?         @relation(fields: [peninjauId], references: [id], onDelete: SetNull)
+  peninjauId        Int?
+  ditinjauPada      DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([status])
+  @@index([email])
+  @@index([username])
 }
 
 // Tabel Menu/Item yang dijual
@@ -46,14 +74,14 @@ model Menu {
 
 // Tabel Transaksi Penjualan
 model Transaksi {
-  id            Int              @id @default(autoincrement())
-  kodeTransaksi String           @unique // format: #T-XXXX
-  waktu         DateTime         @default(now())
-  kasir         Pengguna         @relation(fields: [kasirId], references: [id])
+  id            Int             @id @default(autoincrement())
+  kodeTransaksi String          @unique // format: #T-XXXX
+  waktu         DateTime        @default(now())
+  kasir         Pengguna        @relation(fields: [kasirId], references: [id])
   kasirId       Int
-  total         Decimal          @db.Decimal(10, 2)
+  total         Decimal         @db.Decimal(10, 2)
   metode        MetodeBayar
-  status        StatusTransaksi  @default(SELESAI)
+  status        StatusTransaksi @default(SELESAI)
   catatan       String?
   namaPelanggan String?
   items         ItemTransaksi[]
@@ -81,16 +109,16 @@ model ItemTransaksi {
 
 // Tabel Bahan Baku / Persediaan
 model Persediaan {
-  id          Int            @id @default(autoincrement())
+  id          Int           @id @default(autoincrement())
   namaBahan   String
   kategori    KategoriStok
-  stok        Decimal        @db.Decimal(10, 2)
-  satuan      String         // kg, liter, butir, dll
-  stokMinimum Decimal        @db.Decimal(10, 2)
-  hargaSatuan Decimal        @db.Decimal(10, 2) @default(0)
-  status      StatusStok     @default(AMAN)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  stok        Decimal       @db.Decimal(10, 2)
+  satuan      String // kg, liter, butir, dll
+  stokMinimum Decimal       @db.Decimal(10, 2)
+  hargaSatuan Decimal       @default(0) @db.Decimal(10, 2)
+  status      StatusStok    @default(AMAN)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   riwayatStok RiwayatStok[]
 
   @@index([status])
@@ -102,7 +130,7 @@ model RiwayatStok {
   id           Int        @id @default(autoincrement())
   persediaan   Persediaan @relation(fields: [persediaanId], references: [id], onDelete: Cascade)
   persediaanId Int
-  tipe         TipeStok   // MASUK atau KELUAR
+  tipe         TipeStok // MASUK atau KELUAR
   jumlah       Decimal    @db.Decimal(10, 2)
   keterangan   String?
   tanggal      DateTime   @default(now())
@@ -181,6 +209,13 @@ enum Role {
 enum StatusAkun {
   AKTIF
   NONAKTIF
+}
+
+enum StatusPendaftaran {
+  BELUM_VERIFIKASI // email belum dikonfirmasi pendaftar
+  MENUNGGU // email valid, menunggu persetujuan Owner
+  DISETUJUI
+  DITOLAK
 }
 
 enum KategoriMenu {

@@ -9,16 +9,29 @@ export default {
       // Palet warna FinStocks sesuai Vibe Coding Document
       colors: {
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          200: '#bae6fd',
-          300: '#7dd3fc',
-          400: '#38bdf8',
-          500: '#0ea5e9',   // Warna utama tombol & aksen
-          600: '#0284c7',
-          700: '#0369a1',
-          800: '#075985',
-          900: '#0c4a6e',
+          50: '#f0f4f8',
+          100: '#d9e2ec',
+          200: '#bcccdc',
+          300: '#9fb3c8',
+          400: '#829ab1',
+          500: '#1a3a5c',   // Corporate light navy
+          600: '#002444',   // Corporate dark navy
+          700: '#0a1d30',
+          800: '#050f1a',
+          900: '#02070d',
+        },
+        navy: {
+          dark: '#002444',
+          light: '#1a3a5c',
+        },
+        greyBlue: '#c3c6cf',
+        cashier: {
+          green: '#006c4e',
+          mint: '#83f5c6',
+        },
+        warningRed: {
+          dark: '#ba1a1a',
+          light: '#ffdad6',
         },
         success: '#16a34a',
         warning: '#d97706',
@@ -38,7 +51,8 @@ export default {
       },
       // Font family default
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'monospace'],
       },
     },
   },

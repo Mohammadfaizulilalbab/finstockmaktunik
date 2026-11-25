@@ -6,8 +6,6 @@ import { exportStrukPDF } from '../utils/exportUtils';
 import axiosInstance from '../api/axiosInstance';
 import { formatRupiah } from '../utils/formatRupiah';
 import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
 import Modal from '../components/ui/Modal';
 
 const Kasir = () => {
@@ -18,18 +16,39 @@ const Kasir = () => {
   
   // Cart state
   const [cart, setCart] = useState([]);
-  const [metode, setMetode] = useState('TUNAI');
-  const [catatan, setCatatan] = useState('');
-  const [namaPelanggan, setNamaPelanggan] = useState('');
+
+  // Right Column customer & payment states
+  const [customerName, setCustomerName] = useState('');
+  const [tableNo, setTableNo] = useState('');
+  const [orderType, setOrderType] = useState('Dine In');
+  const [paymentMethod, setPaymentMethod] = useState('TUNAI');
+  const [paymentStatus, setPaymentStatus] = useState('Lunas');
+  const [additionalCatatan, setAdditionalCatatan] = useState('');
 
   // Success Modal state
   const [successTx, setSuccessTx] = useState(null);
+
+  // Format dynamic Indonesian date
+  const getIndonesianDate = () => {
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    const date = new Date();
+    const dayName = days[date.getDay()];
+    const day = date.getDate();
+    const monthName = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${dayName}, ${day} ${monthName} ${year}`;
+  };
 
   useEffect(() => {
     const fetchMenus = async () => {
       try {
         const response = await axiosInstance.get('/menu');
-        setMenus(response.data.data);
+        const availableMenus = response.data.data.filter(m => m.isAvailable !== false);
+        setMenus(availableMenus);
       } catch (error) {
         console.error('Failed to fetch menus', error);
         toast.error('Gagal mengambil daftar menu');
@@ -41,25 +60,27 @@ const Kasir = () => {
   }, []);
 
   const addToCart = (menu) => {
-    const existing = cart.find(item => item.menuId === menu.id);
-    if (existing) {
-      setCart(cart.map(item => 
-        item.menuId === menu.id 
-          ? { ...item, qty: item.qty + 1 } 
-          : item
-      ));
+    const existingIndex = cart.findIndex(item => item.menuId === menu.id);
+    if (existingIndex > -1) {
+      const updated = [...cart];
+      updated[existingIndex].qty += 1;
+      setCart(updated);
     } else {
       setCart([...cart, { 
         menuId: menu.id, 
         nama: menu.nama, 
         hargaSatuan: Number(menu.harga), 
-        qty: 1 
+        qty: 1,
+        notes: ''
       }]);
     }
   };
 
   const updateQty = (menuId, newQty) => {
-    if (newQty < 1) return;
+    if (newQty < 1) {
+      removeFromCart(menuId);
+      return;
+    }
     setCart(cart.map(item => 
       item.menuId === menuId ? { ...item, qty: newQty } : item
     ));
@@ -69,9 +90,32 @@ const Kasir = () => {
     setCart(cart.filter(item => item.menuId !== menuId));
   };
 
-  const totalBelanja = cart.reduce((sum, item) => sum + (item.hargaSatuan * item.qty), 0);
+  const updateNotes = (menuId, notesText) => {
+    setCart(cart.map(item =>
+      item.menuId === menuId ? { ...item, notes: notesText } : item
+    ));
+  };
 
-  const handleSubmit = async () => {
+  const handleResetKasir = () => {
+    setCart([]);
+    setCustomerName('');
+    setTableNo('');
+    setOrderType('Dine In');
+    setPaymentMethod('TUNAI');
+    setPaymentStatus('Lunas');
+    setAdditionalCatatan('');
+    setSuccessTx(null);
+  };
+
+  const handleCetakNota = () => {
+    if (successTx) {
+      exportStrukPDF(successTx);
+      toast.success('Nota sedang diunduh');
+      handleResetKasir();
+    }
+  };
+
+  const handleSubmit = async (shouldPrint = false) => {
     if (cart.length === 0) {
       toast.error('Belum ada menu yang dipilih');
       return;
@@ -85,124 +129,146 @@ const Kasir = () => {
           qty: item.qty,
           hargaSatuan: item.hargaSatuan
         })),
-        metode,
-        catatan,
-        namaPelanggan,
+        metode: paymentMethod,
+        catatan: additionalCatatan.trim() !== '' ? additionalCatatan : null,
+        namaPelanggan: customerName.trim() !== '' ? customerName : 'Pelanggan Umum',
         status: 'SELESAI'
       };
 
       const response = await axiosInstance.post('/transaksi', payload);
       toast.success('Transaksi berhasil disimpan');
-      setSuccessTx(response.data.data);
+      
+      const savedTrx = response.data.data;
+      setSuccessTx(savedTrx);
+
+      if (shouldPrint) {
+        exportStrukPDF(savedTrx);
+        toast.success('Nota sedang diunduh');
+        handleResetKasir();
+      }
     } catch (error) {
       console.error('Failed to save transaction', error);
-      toast.error('Gagal menyimpan transaksi');
+      const msg = error.response?.data?.message || 'Gagal menyimpan transaksi';
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleResetKasir = () => {
-    setCart([]);
-    setMetode('TUNAI');
-    setCatatan('');
-    setNamaPelanggan('');
-    setSuccessTx(null);
-  };
-
-  const handleCetakNota = () => {
-    if (successTx) {
-      exportStrukPDF(successTx);
-      toast.success('Nota sedang diunduh');
-      handleResetKasir();
-    }
-  };
+  // Calculations
+  const subtotal = cart.reduce((sum, item) => sum + (item.hargaSatuan * item.qty), 0);
 
   if (isLoading) {
-    return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div></div>;
+    return (
+      <div className="flex justify-center p-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#002444]"></div>
+      </div>
+    );
   }
 
   // Group available menus by category
   const categories = ['MAKANAN', 'MINUMAN', 'SNACK'];
   const menuByCategory = categories.map(cat => ({
     name: cat,
-    items: menus.filter(m => m.kategori === cat && m.isAvailable !== false)
+    items: menus.filter(m => m.kategori?.toUpperCase() === cat && m.isAvailable !== false)
   })).filter(c => c.items.length > 0);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      
+      {/* Header Banner */}
+      <div className="flex justify-between items-center bg-white p-5 rounded-xl border border-[#c3c6cf]/30 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-neutral-800">Kasir</h1>
-          <p className="text-neutral-500">Pencatatan Transaksi Pelanggan</p>
+          <h3 className="text-sm font-bold text-[#002444] uppercase tracking-wider mb-1">
+            Kasir / Pencatatan Transaksi
+          </h3>
+          <p className="text-xs text-[#73777f]">Pilih menu makanan atau minuman, sesuaikan kuantitas pesanan, dan catat transaksi POS secara langsung.</p>
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Kiri: Daftar Menu */}
-        <div className="flex-1 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Column: Menu Items Selection Grid (7 cols) */}
+        <div className="lg:col-span-7 space-y-6">
           {menuByCategory.map((category) => (
-            <div key={category.name}>
-              <h3 className="text-lg font-semibold text-neutral-800 mb-3">{category.name}</h3>
+            <div key={category.name} className="bg-white rounded-xl p-5 border border-[#c3c6cf]/30 shadow-sm">
+              <h3 className="text-xs font-bold text-[#002444] mb-4 uppercase tracking-wider border-b border-[#c3c6cf]/20 pb-2">
+                {category.name}
+              </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                {category.items.map(menu => (
-                  <div 
-                    key={menu.id}
-                    onClick={() => addToCart(menu)}
-                    className="bg-white border border-neutral-200 rounded-xl p-4 cursor-pointer hover:border-primary-500 hover:shadow-md transition-all flex flex-col justify-between"
-                  >
-                    <div className="font-medium text-neutral-800 line-clamp-2">{menu.nama}</div>
-                    <div className="text-primary-600 font-semibold mt-2">{formatRupiah(menu.harga)}</div>
-                  </div>
-                ))}
+                {category.items.map(menu => {
+                  const cartItem = cart.find(item => item.menuId === menu.id);
+                  return (
+                    <div 
+                      key={menu.id}
+                      onClick={() => addToCart(menu)}
+                      className="bg-white border border-[#c3c6cf]/40 rounded-xl p-4 cursor-pointer hover:border-[#002444] hover:shadow-md transition-all flex flex-col justify-between min-h-[100px] relative group select-none"
+                    >
+                      <div className="font-bold text-xs text-[#002444] line-clamp-2 pr-4">{menu.nama}</div>
+                      <div className="text-[11px] font-bold font-mono text-[#006c4e] mt-2">{formatRupiah(menu.harga)}</div>
+                      {/* Quantity counter badge inside card */}
+                      {cartItem && (
+                        <span className="absolute top-2 right-2 w-5 h-5 bg-[#006c4e] text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-sm">
+                          {cartItem.qty}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
 
-        {/* Kanan: Keranjang & Pembayaran */}
-        <div className="w-full lg:w-96 flex-shrink-0">
-          <Card className="sticky top-20 h-[calc(100vh-100px)] flex flex-col" noPadding>
-            <div className="p-4 border-b border-neutral-100 bg-neutral-50 rounded-t-xl">
-              <h2 className="text-lg font-bold text-neutral-800 flex items-center gap-2">
-                <ShoppingCart size={20} />
-                Pesanan Saat Ini
-              </h2>
-            </div>
+        {/* Right Column: Checkout & Cart (5 cols) */}
+        <div className="lg:col-span-5">
+          <div className="flex flex-col gap-4 bg-white p-6 rounded-xl border border-[#c3c6cf]/30 shadow-sm sticky top-20">
+            <h4 className="text-xs font-bold text-[#002444] uppercase tracking-wider flex items-center gap-2 pb-3 border-b border-[#c3c6cf]/30">
+              <ShoppingCart size={16} />
+              Pesanan Saat Ini
+            </h4>
             
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {/* Cart Items List */}
+            <div className="max-h-60 overflow-y-auto divide-y divide-[#c3c6cf]/20 pr-1">
               {cart.length === 0 ? (
-                <div className="text-center text-neutral-400 py-10">
-                  Belum ada menu di keranjang
+                <div className="text-center text-xs text-neutral-400 py-10">
+                  Belum ada menu di keranjang. Klik menu di sebelah kiri untuk menambahkan.
                 </div>
               ) : (
-                cart.map(item => (
-                  <div key={item.menuId} className="flex justify-between items-start border-b border-neutral-100 pb-4">
-                    <div className="flex-1">
-                      <div className="font-medium text-sm text-neutral-800">{item.nama}</div>
-                      <div className="text-xs text-neutral-500 mt-1">{formatRupiah(item.hargaSatuan)}</div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex items-center bg-neutral-100 rounded-lg overflow-hidden">
+                cart.map((item) => (
+                  <div key={item.menuId} className="py-3 flex flex-col gap-1.5">
+                    {/* Baris 1: Nama Menu (kiri) & Counter Qty (kanan) */}
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-xs text-[#002444] truncate pr-2">{item.nama}</span>
+                      
+                      <div className="flex items-center bg-neutral-100 rounded-md overflow-hidden border border-[#c3c6cf]/20 shrink-0">
                         <button 
                           onClick={() => updateQty(item.menuId, item.qty - 1)}
-                          className="px-2 py-1 hover:bg-neutral-200 text-neutral-600"
+                          className="px-2 py-0.5 hover:bg-[#edeef0] text-neutral-600 text-xs font-bold transition-colors"
                         >
-                          <Minus size={14} />
+                          -
                         </button>
-                        <span className="w-8 text-center text-sm font-medium">{item.qty}</span>
+                        <span className="w-8 text-center text-xs font-mono font-bold text-[#002444]">{item.qty}</span>
                         <button 
                           onClick={() => updateQty(item.menuId, item.qty + 1)}
-                          className="px-2 py-1 hover:bg-neutral-200 text-neutral-600"
+                          className="px-2 py-0.5 hover:bg-[#edeef0] text-neutral-600 text-xs font-bold transition-colors"
                         >
-                          <Plus size={14} />
+                          +
                         </button>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">{formatRupiah(item.hargaSatuan * item.qty)}</span>
+                    </div>
+
+                    {/* Baris 2: Harga Satuan (kiri) & Subtotal + Delete (kanan) */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] text-neutral-400 font-mono block">{formatRupiah(item.hargaSatuan)}</span>
+                      
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="font-bold text-xs font-mono text-[#002444] w-20 text-right">
+                          {formatRupiah(item.hargaSatuan * item.qty)}
+                        </span>
                         <button 
                           onClick={() => removeFromCart(item.menuId)}
-                          className="text-danger hover:bg-red-50 p-1 rounded"
+                          className="text-[#ba1a1a] hover:bg-[#ba1a1a]/10 p-1.5 rounded transition-transform hover:scale-105"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -213,88 +279,116 @@ const Kasir = () => {
               )}
             </div>
 
-            <div className="p-4 border-t border-neutral-100 space-y-4 bg-white rounded-b-xl">
-              <div className="flex justify-between items-center text-lg font-bold">
-                <span className="text-neutral-800">Total:</span>
-                <span className="text-primary-600 text-2xl">{formatRupiah(totalBelanja)}</span>
-              </div>
+            {/* Checkout Form & Total Calculation */}
+            <div className="border-t border-[#c3c6cf]/30 pt-4 space-y-4">
               
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-neutral-700">Metode Pembayaran</label>
+              {/* Total Tagihan */}
+              <div className="flex justify-between items-center pt-2 border-t border-[#c3c6cf]/30">
+                <span className="text-xs font-bold text-[#002444]">Total:</span>
+                <span className="text-base font-bold font-mono text-[#002444]">{formatRupiah(subtotal)}</span>
+              </div>
+
+              {/* Metode Pembayaran Button Group */}
+              <div className="space-y-1.5">
+                <label className="block text-[10px] uppercase font-bold text-[#73777f] mb-1">Metode Pembayaran</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {['TUNAI', 'QRIS', 'TRANSFER'].map(m => (
+                  {['TUNAI', 'QRIS', 'TRANSFER'].map((method) => (
                     <button
-                      key={m}
-                      onClick={() => setMetode(m)}
-                      className={`py-2 text-sm font-medium rounded-lg border ${
-                        metode === m 
-                          ? 'bg-primary-50 border-primary-500 text-primary-700' 
-                          : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'
+                      key={method}
+                      type="button"
+                      onClick={() => setPaymentMethod(method)}
+                      className={`py-2 text-xs font-bold rounded-md border transition-all text-center cursor-pointer ${
+                        paymentMethod === method
+                          ? 'border-[#002444] text-[#002444] bg-[#002444]/5 font-extrabold'
+                          : 'border-[#c3c6cf] text-[#73777f] hover:bg-neutral-50'
                       }`}
                     >
-                      {m}
+                      {method}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Input 
-                  placeholder="Nama Pelanggan (opsional)" 
-                  value={namaPelanggan}
-                  onChange={(e) => setNamaPelanggan(e.target.value)}
-                />
-                <Input 
-                  placeholder="Catatan opsional..." 
-                  value={catatan}
-                  onChange={(e) => setCatatan(e.target.value)}
+              {/* Input Nama Pelanggan */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-[#73777f] mb-1">Nama Pelanggan (opsional)</label>
+                <input
+                  type="text"
+                  placeholder="Nama Pelanggan..."
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full text-xs h-8 px-2.5 border border-[#c3c6cf] bg-white rounded-md focus:border-[#002444] outline-none text-[#191c1e] transition-colors"
                 />
               </div>
 
-              <Button 
-                className="w-full py-3" 
-                onClick={handleSubmit}
-                disabled={cart.length === 0 || isSubmitting}
-                isLoading={isSubmitting}
-              >
-                <Save size={18} className="mr-2" />
-                Simpan & Bayar
-              </Button>
+              {/* Input Catatan */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-[#73777f] mb-1">Catatan (opsional)</label>
+                <input
+                  type="text"
+                  placeholder="Catatan..."
+                  value={additionalCatatan}
+                  onChange={(e) => setAdditionalCatatan(e.target.value)}
+                  className="w-full text-xs h-8 px-2.5 border border-[#c3c6cf] bg-white rounded-md focus:border-[#002444] outline-none text-[#191c1e] transition-colors"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(false)}
+                  disabled={cart.length === 0 || isSubmitting}
+                  className="flex-1 py-2.5 text-xs bg-[#002444] text-white rounded-lg font-bold hover:bg-[#1a3a5c] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Simpan Transaksi
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(true)}
+                  disabled={cart.length === 0 || isSubmitting}
+                  className="flex-1 py-2.5 text-xs bg-[#006c4e] text-white rounded-lg font-bold hover:bg-[#00513a] transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Printer size={14} />
+                  <span>Simpan &amp; Cetak</span>
+                </button>
+              </div>
             </div>
-          </Card>
+          </div>
         </div>
+
       </div>
 
+      {/* Success Modal */}
       <Modal
         isOpen={!!successTx}
         onClose={handleResetKasir}
         title="Transaksi Berhasil!"
       >
         <div className="flex flex-col items-center py-6 text-center">
-          <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+          <div className="w-16 h-16 bg-[#83f5c6]/30 text-[#006c4e] rounded-full flex items-center justify-center mb-4">
             <CheckCircle size={32} />
           </div>
-          <h3 className="text-xl font-bold text-neutral-800 mb-1">Rp {successTx && formatRupiah(successTx.total)}</h3>
+          <h3 className="text-xl font-bold text-[#002444] mb-1 font-mono">{successTx && formatRupiah(successTx.total)}</h3>
           <p className="text-sm text-neutral-500 mb-6">
             Pembayaran dengan {successTx?.metode} telah berhasil dicatat.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <Button 
-              variant="outline" 
-              className="flex-1 flex justify-center items-center gap-2"
+            <button 
+              className="flex-1 py-2.5 text-xs bg-[#edeef0] text-[#002444] font-bold rounded-lg border border-[#c3c6cf] hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
               onClick={handleResetKasir}
             >
-              <RefreshCw size={18} />
-              Transaksi Baru
-            </Button>
-            <Button 
-              className="flex-1 flex justify-center items-center gap-2 bg-green-600 hover:bg-green-700"
+              <RefreshCw size={14} />
+              <span>Transaksi Baru</span>
+            </button>
+            <button 
+              className="flex-1 py-2.5 text-xs bg-[#006c4e] text-white font-bold rounded-lg hover:bg-[#00513a] transition-colors flex items-center justify-center gap-2 cursor-pointer"
               onClick={handleCetakNota}
             >
-              <Printer size={18} />
-              Cetak Nota / Struk
-            </Button>
+              <Printer size={14} />
+              <span>Cetak Nota / Struk</span>
+            </button>
           </div>
         </div>
       </Modal>

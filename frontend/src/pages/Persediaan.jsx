@@ -22,7 +22,7 @@ const Persediaan = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
 
   // State untuk Modals
   const [activeModal, setActiveModal] = useState(null); // 'UPDATE', 'EDIT', 'TAMBAH'
@@ -158,6 +158,17 @@ const Persediaan = () => {
     }
   };
 
+  const handleQuickRestock = async (item, amount) => {
+    try {
+      await axiosInstance.post(`/persediaan/${item.id}/restock`, { jumlah: Number(amount) });
+      toast.success(`Stok ${item.namaBahan} berhasil ditambahkan +${amount}`);
+      fetchBahanBaku();
+      fetchRiwayat();
+    } catch (error) {
+      toast.error('Gagal mengupdate stok.');
+    }
+  };
+
   const handleSubmitEdit = async () => {
     try {
       const payload = {
@@ -195,9 +206,19 @@ const Persediaan = () => {
   };
 
   const getStatusBadge = (stok, minimalStok) => {
-    if (stok <= 0) return <Badge variant="danger">Habis</Badge>;
-    if (stok <= minimalStok) return <Badge variant="warning">Menipis</Badge>;
-    return <Badge variant="success">Aman</Badge>;
+    const isOut = stok <= 0;
+    const isCritical = stok > 0 && stok <= minimalStok;
+    return (
+      <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[10px] font-bold w-24 ${
+        isOut 
+          ? 'bg-[#ffdad6] text-[#ba1a1a]' 
+          : isCritical 
+          ? 'bg-[#ffecc7] text-[#653e00]' 
+          : 'bg-[#83f5c6] text-[#006c4e]'
+      }`}>
+        {isOut ? 'Habis' : isCritical ? 'Kritis' : 'Cukup'}
+      </span>
+    );
   };
 
   const getLogIcon = (aksiText) => {
@@ -261,14 +282,21 @@ const Persediaan = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <h1 className="text-xl font-bold text-neutral-800">Manajemen Persediaan</h1>
-        <button 
+      {/* Supplies title and trigger */}
+      <div className="flex justify-between items-center bg-white p-5 rounded-xl border border-[#c3c6cf]/30 shadow-sm">
+        <div>
+          <h3 className="text-sm font-bold text-[#002444] uppercase tracking-wider mb-1">
+            Pengendalian Stok &amp; Bahan Baku
+          </h3>
+          <p className="text-xs text-[#73777f]">Pastikan stok masakan kuliner aman di atas ambang kritis.</p>
+        </div>
+
+        <button
           onClick={() => openModal('TAMBAH')}
-          className="bg-[#1e3251] text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 hover:bg-slate-800"
+          className="px-4 py-2 bg-[#006c4e] text-white rounded-lg font-bold text-xs hover:bg-[#00513a] flex items-center gap-1 transition-colors"
         >
           <Plus size={16} />
-          Tambah Barang
+          <span>Tambah Bahan Baku</span>
         </button>
       </div>
 
@@ -421,16 +449,16 @@ const Persediaan = () => {
         }
         noPadding
       >
-        <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3">
+        <div className="p-4 border-b border-[#c3c6cf]/30 flex flex-wrap gap-3 bg-white">
           <input 
             type="text" 
             placeholder="Cari bahan baku..." 
-            className="flex-1 min-w-[200px] px-3 py-1.5 border border-neutral-200 rounded-md text-sm outline-none focus:border-teal-500" 
+            className="flex-1 min-w-[200px] px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm outline-none focus:border-[#002444] text-[#191c1e] transition-colors" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <select 
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer"
             value={filterKategori}
             onChange={(e) => setFilterKategori(e.target.value)}
           >
@@ -442,7 +470,7 @@ const Persediaan = () => {
             <option value="LAINNYA">Lainnya</option>
           </select>
           <select 
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -454,91 +482,105 @@ const Persediaan = () => {
         </div>
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-xs text-left border-collapse bg-white">
             <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50/50">
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">ID</th>
+              <tr className="bg-[#f8f9fb] border-b border-[#c3c6cf]/30 text-[#43474e]">
+                <th className="py-3 px-6 font-semibold">ID</th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none"
                   onClick={() => requestSort('namaBahan')}
                 >
                   <div className="flex items-center gap-2">
-                    NAMA BAHAN
+                    BAHAN BAKU METRIC
                     {getSortIcon('namaBahan')}
                   </div>
                 </th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
-                  onClick={() => requestSort('kategori')}
-                >
-                  <div className="flex items-center gap-2">
-                    KATEGORI
-                    {getSortIcon('kategori')}
-                  </div>
-                </th>
-                <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none text-center"
                   onClick={() => requestSort('stok')}
                 >
-                  <div className="flex items-center gap-2">
-                    STOK
+                  <div className="flex items-center justify-center gap-2">
+                    STOK SAAT INI
                     {getSortIcon('stok')}
                   </div>
                 </th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">SATUAN</th>
+                <th className="py-3 px-6 font-semibold text-center">TAKARAN</th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none text-center"
                   onClick={() => requestSort('stokMinimum')}
                 >
-                  <div className="flex items-center gap-2">
-                    MIN. STOK
+                  <div className="flex items-center justify-center gap-2">
+                    BATAS AMBANG AMAN
                     {getSortIcon('stokMinimum')}
                   </div>
                 </th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none text-center"
                   onClick={() => requestSort('hargaSatuan')}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     HARGA SATUAN
                     {getSortIcon('hargaSatuan')}
                   </div>
                 </th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-center">STATUS</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-right">AKSI</th>
+                <th className="py-3 px-6 font-semibold text-center">INDIKATOR STATUS</th>
+                <th className="py-3 px-6 font-semibold text-center">TINDAKAN RESTOK</th>
+                <th className="py-3 px-6 font-semibold text-right">AKSI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-50 text-neutral-600">
+            <tbody className="divide-y divide-[#c3c6cf]/20 font-medium text-neutral-600">
               {sortedBahanBaku.length > 0 ? (
                 sortedBahanBaku.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item, idx) => (
-                  <tr key={item.id} className="even:bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
-                    <td className="py-3 px-6 text-xs text-[#1e3251] font-medium">#{item.id || `B-00${idx+1}`}</td>
-                    <td className="py-3 px-6 text-xs font-semibold">{item.namaBahan}</td>
-                    <td className="py-3 px-6 text-xs text-neutral-500">{item.kategori ? item.kategori.replace('_', ' ') : 'BAHAN POKOK'}</td>
-                    <td className={`py-3 px-6 text-xs ${item.stok <= 0 ? 'text-red-500 font-bold' : ''}`}>
+                  <tr key={item.id} className="hover:bg-[#f8f9fb] transition-colors">
+                    <td className="py-4 px-6 text-xs text-[#1e3251] font-semibold">#{item.id || `B-00${idx+1}`}</td>
+                    <td className="py-4 px-6 text-xs text-[#002444] font-bold">
+                      <div>{item.namaBahan}</div>
+                      <div className="text-[10px] text-neutral-400 font-normal uppercase tracking-wide mt-0.5">
+                        {item.kategori ? item.kategori.replace('_', ' ') : 'BAHAN POKOK'}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-center font-mono font-bold text-sm text-[#191c1e]">
                       {item.stok}
                     </td>
-                    <td className="py-3 px-6 text-xs text-neutral-500">{item.satuan}</td>
-                    <td className="py-3 px-6 text-xs text-neutral-500">{item.stokMinimum || 0}</td>
-                    <td className="py-3 px-6 text-xs">{formatRupiah(item.hargaSatuan || 0)}</td>
-                    <td className="py-3 px-6 text-center">{getStatusBadge(item.stok, item.stokMinimum || 0)}</td>
+                    <td className="py-4 px-6 text-center text-[#73777f] uppercase font-bold text-[10px]">
+                      {item.satuan}
+                    </td>
+                    <td className="py-4 px-6 text-center font-mono text-[#73777f]">
+                      {item.stokMinimum || 0} {item.satuan}
+                    </td>
+                    <td className="py-4 px-6 text-center font-mono text-xs text-neutral-500">
+                      {formatRupiah(item.hargaSatuan || 0)}
+                    </td>
+                    <td className="py-4 px-6 text-center">
+                      {getStatusBadge(item.stok, item.stokMinimum || 0)}
+                    </td>
+                    <td className="py-3 px-6 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() => handleQuickRestock(item, 10)}
+                          className="px-2.5 py-1 bg-[#edeef0] text-[#002444] rounded hover:bg-[#c3c6cf]/50 font-bold text-[11px] border border-[#c3c6cf]/50 transition-colors"
+                        >
+                          +10
+                        </button>
+                        <button
+                          onClick={() => handleQuickRestock(item, 50)}
+                          className="px-2.5 py-1 bg-[#002444] text-white rounded hover:bg-[#1a3a5c] font-bold text-[11px] transition-colors"
+                        >
+                          +50
+                        </button>
+                      </div>
+                    </td>
                     <td className="py-3 px-6 text-right">
                       <div className="flex justify-end gap-2">
                         <button 
-                          onClick={() => openModal('UPDATE', item)} 
-                          className="text-[10px] font-medium text-[#10b981] hover:text-white hover:bg-[#10b981] border border-[#10b981] px-3 py-1.5 rounded transition-colors"
-                        >
-                          Update
-                        </button>
-                        <button 
                           onClick={() => openModal('EDIT', item)} 
-                          className="text-[10px] font-medium text-amber-500 hover:text-white hover:bg-amber-500 border border-amber-500 px-3 py-1.5 rounded transition-colors"
+                          className="text-[10px] font-medium text-amber-600 hover:text-white hover:bg-amber-500 border border-amber-500 px-3 py-1.5 rounded transition-colors"
                         >
                           Edit
                         </button>
                         <button 
                           onClick={() => openModal('HAPUS', item)} 
-                          className="text-[10px] font-medium text-red-500 hover:text-white hover:bg-red-500 border border-red-500 px-3 py-1.5 rounded transition-colors"
+                          className="text-[10px] font-medium text-red-600 hover:text-white hover:bg-red-500 border border-red-500 px-3 py-1.5 rounded transition-colors"
                         >
                           Hapus
                         </button>
@@ -548,8 +590,8 @@ const Persediaan = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="9" className="py-4 text-center text-xs text-neutral-500">
-                    Belum ada data persediaan
+                  <td colSpan="9" className="py-8 text-center text-xs text-neutral-500">
+                    Tidak ada data persediaan.
                   </td>
                 </tr>
               )}
@@ -718,7 +760,7 @@ const Persediaan = () => {
               ))}
               {riwayat.length === 0 && (
                 <tr>
-                  <td colSpan="3" className="py-8 text-center text-xs text-neutral-500">Belum ada data riwayat</td>
+                  <td colSpan="3" className="py-8 text-center text-xs text-neutral-500">No data available.</td>
                 </tr>
               )}
             </tbody>

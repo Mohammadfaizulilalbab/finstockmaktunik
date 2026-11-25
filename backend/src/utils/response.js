@@ -68,7 +68,8 @@ const sendError = (res, message, statusCode = 500, errorCode = null) => {
 const sendValidationError = (res, errors) => {
   return res.status(422).json({
     success: false,
-    message: 'Validasi gagal',
+    // Pesan error pertama agar langsung bisa ditampilkan di UI
+    message: errors[0]?.msg || 'Validasi gagal',
     error: 'VALIDATION_ERROR',
     details: errors,
   });

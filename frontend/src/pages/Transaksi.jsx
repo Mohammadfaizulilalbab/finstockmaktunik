@@ -8,6 +8,7 @@ import Badge from '../components/ui/Badge';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import Pagination from '../components/ui/Pagination';
 import { formatRupiah } from '../utils/formatRupiah';
+import { toTanggalLokal } from '../utils/formatTanggal';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import useSortableData from '../hooks/useSortableData';
@@ -19,7 +20,7 @@ const Transaksi = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
 
   // State untuk Filter
   const [searchTerm, setSearchTerm] = useState('');
@@ -130,7 +131,7 @@ const Transaksi = () => {
     
     let matchesTanggal = true;
     if (filterTanggal && trx.waktu) {
-      const trxDate = new Date(trx.waktu).toISOString().split('T')[0];
+      const trxDate = toTanggalLokal(trx.waktu);
       matchesTanggal = trxDate === filterTanggal;
     }
 
@@ -149,13 +150,13 @@ const Transaksi = () => {
       return <ArrowUpDown size={12} className="text-neutral-300" />;
     }
     return sortConfig.direction === 'ascending' 
-      ? <ArrowUp size={12} className="text-teal-600" />
-      : <ArrowDown size={12} className="text-teal-600" />;
+      ? <ArrowUp size={12} className="text-[#002444]" />
+      : <ArrowDown size={12} className="text-[#002444]" />;
   };
 
   // Dynamic Dashboard Calculations
-  const today = new Date().toISOString().split('T')[0];
-  const todaysTransactions = transaksi.filter(t => t.waktu && t.waktu.startsWith(today) && t.status === 'SELESAI');
+  const today = toTanggalLokal();
+  const todaysTransactions = transaksi.filter(t => t.waktu && toTanggalLokal(t.waktu) === today && t.status === 'SELESAI');
   const totalHariIni = todaysTransactions.length;
   const pendapatanHariIni = todaysTransactions.reduce((sum, t) => sum + parseFloat(t.total || 0), 0);
   const avgPendapatan = totalHariIni > 0 ? (pendapatanHariIni / totalHariIni) : 0;
@@ -166,14 +167,14 @@ const Transaksi = () => {
 
   // Chart Data
   const dynamicChartData = [
-    { hour: '08-09', count: 0, fill: '#3b82f6' },
-    { hour: '09-10', count: 0, fill: '#10b981' },
-    { hour: '10-11', count: 0, fill: '#f59e0b' },
-    { hour: '11-12', count: 0, fill: '#8b5cf6' },
-    { hour: '12-13', count: 0, fill: '#f43f5e' },
-    { hour: '13-14', count: 0, fill: '#1e3251' },
-    { hour: '14-15', count: 0, fill: '#ec4899' },
-    { hour: '15-16', count: 0, fill: '#06b6d4' }
+    { hour: '08-09', count: 0, fill: '#002444' },
+    { hour: '09-10', count: 0, fill: '#1a3a5c' },
+    { hour: '10-11', count: 0, fill: '#006c4e' },
+    { hour: '11-12', count: 0, fill: '#83f5c6' },
+    { hour: '12-13', count: 0, fill: '#653e00' },
+    { hour: '13-14', count: 0, fill: '#002444' },
+    { hour: '14-15', count: 0, fill: '#1a3a5c' },
+    { hour: '15-16', count: 0, fill: '#006c4e' }
   ];
 
   todaysTransactions.forEach(t => {
@@ -212,8 +213,13 @@ const Transaksi = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <h1 className="text-xl font-bold text-neutral-800">Riwayat Transaksi</h1>
+      <div className="flex justify-between items-center bg-white p-5 rounded-xl border border-[#c3c6cf]/30 shadow-sm">
+        <div>
+          <h3 className="text-sm font-bold text-[#002444] uppercase tracking-wider mb-1">
+            Riwayat Transaksi Penjualan
+          </h3>
+          <p className="text-xs text-[#73777f]">Pantau, filter, dan unduh laporan transaksi POS, cetak struk belanja, dan kelola status pembayaran.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -222,13 +228,13 @@ const Transaksi = () => {
           value={totalHariIni.toString()} 
           subtitle="Selesai hari ini"
           subtitleColorClass="text-neutral-400"
-          topBorderColor="indigo"
+          topBorderColor="primary"
         />
         <StatCard 
           title="PENDAPATAN HARI INI" 
           value={formatRupiah(pendapatanHariIni)} 
           subtitle={`Rata-rata ${formatRupiah(avgPendapatan)}/trx`}
-          subtitleColorClass="text-neutral-400"
+          subtitleColorClass="text-[#006c4e]"
           topBorderColor="success"
         />
         <StatCard 
@@ -242,8 +248,8 @@ const Transaksi = () => {
           title="TRANSAKSI QRIS" 
           value={qrisHariIni.toString()} 
           subtitle={`${pctQris}% dari total`}
-          subtitleColorClass="text-neutral-400"
-          topBorderColor="indigo"
+          subtitleColorClass="text-[#006c4e]"
+          topBorderColor="primary"
         />
       </div>
 
@@ -279,7 +285,7 @@ const Transaksi = () => {
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-sm text-neutral-500">{menu.qty}x</span>
-                    <span className="text-sm font-semibold text-[#1e3251] w-20 text-right">{formatRupiah(menu.total)}</span>
+                    <span className="text-sm font-semibold text-[#002444] w-20 text-right">{formatRupiah(menu.total)}</span>
                   </div>
                 </div>
               ))
@@ -294,22 +300,22 @@ const Transaksi = () => {
         title="Riwayat Transaksi" 
         action={
           <div className="flex gap-2">
-            <button onClick={handleExportExcel} className="px-3 py-1.5 border border-green-500 text-green-600 rounded-md text-[11px] font-medium bg-green-50 hover:bg-green-100">Ekspor Excel</button>
-            <button onClick={handleExportPDF} className="px-3 py-1.5 border border-red-500 text-red-600 rounded-md text-[11px] font-medium bg-red-50 hover:bg-red-100">Ekspor PDF</button>
+            <button onClick={handleExportExcel} className="px-3 py-1.5 border border-[#006c4e] text-[#006c4e] rounded-md text-[11px] font-bold bg-[#006c4e]/5 hover:bg-[#006c4e]/10 transition-colors">Ekspor Excel</button>
+            <button onClick={handleExportPDF} className="px-3 py-1.5 border border-[#ba1a1a] text-[#ba1a1a] rounded-md text-[11px] font-bold bg-[#ba1a1a]/5 hover:bg-[#ba1a1a]/10 transition-colors">Ekspor PDF</button>
           </div>
         }
         noPadding
       >
-        <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3">
+        <div className="p-4 border-b border-[#c3c6cf]/30 flex flex-wrap gap-3 bg-white">
           <input 
             type="text" 
             placeholder="Cari ID transaksi, kasir, atau menu..." 
-            className="flex-1 min-w-[200px] px-3 py-1.5 border border-neutral-200 rounded-md text-sm outline-none focus:border-teal-500" 
+            className="flex-1 min-w-[200px] px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm outline-none focus:border-[#002444] text-[#191c1e] transition-colors" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <select 
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
           >
@@ -319,7 +325,7 @@ const Transaksi = () => {
             <option value="BATAL">Batal</option>
           </select>
           <select 
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer"
             value={filterKasir}
             onChange={(e) => setFilterKasir(e.target.value)}
           >
@@ -329,7 +335,7 @@ const Transaksi = () => {
             ))}
           </select>
           <select 
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer"
             value={filterMetode}
             onChange={(e) => setFilterMetode(e.target.value)}
           >
@@ -340,7 +346,7 @@ const Transaksi = () => {
           </select>
           <input 
             type="date" 
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm outline-none" 
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer" 
             value={filterTanggal}
             onChange={(e) => setFilterTanggal(e.target.value)}
           />
@@ -349,10 +355,10 @@ const Transaksi = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50/50">
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">ID</th>
+              <tr className="bg-[#f8f9fb] border-b border-[#c3c6cf]/30 text-[#43474e]">
+                <th className="py-3 px-6 text-[10px] font-semibold tracking-wider">ID</th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 text-[10px] font-semibold tracking-wider cursor-pointer hover:bg-neutral-200/50 transition-colors select-none"
                   onClick={() => requestSort('waktu')}
                 >
                   <div className="flex items-center gap-2">
@@ -361,7 +367,7 @@ const Transaksi = () => {
                   </div>
                 </th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 text-[10px] font-semibold tracking-wider cursor-pointer hover:bg-neutral-200/50 transition-colors select-none"
                   onClick={() => requestSort('kasir.nama')}
                 >
                   <div className="flex items-center gap-2">
@@ -369,9 +375,9 @@ const Transaksi = () => {
                     {getSortIcon('kasir.nama')}
                   </div>
                 </th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">ITEM DIPESAN</th>
+                <th className="py-3 px-6 text-[10px] font-semibold tracking-wider">ITEM DIPESAN</th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 text-[10px] font-semibold tracking-wider cursor-pointer hover:bg-neutral-200/50 transition-colors select-none"
                   onClick={() => requestSort('metode')}
                 >
                   <div className="flex items-center gap-2">
@@ -380,7 +386,7 @@ const Transaksi = () => {
                   </div>
                 </th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 text-[10px] font-semibold tracking-wider cursor-pointer hover:bg-neutral-200/50 transition-colors select-none"
                   onClick={() => requestSort('total')}
                 >
                   <div className="flex items-center gap-2">
@@ -389,7 +395,7 @@ const Transaksi = () => {
                   </div>
                 </th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 text-[10px] font-semibold tracking-wider cursor-pointer hover:bg-neutral-200/50 transition-colors select-none"
                   onClick={() => requestSort('status')}
                 >
                   <div className="flex items-center gap-2">
@@ -397,15 +403,15 @@ const Transaksi = () => {
                     {getSortIcon('status')}
                   </div>
                 </th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-right">AKSI</th>
+                <th className="py-3 px-6 text-[10px] font-semibold tracking-wider text-right">AKSI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-50 text-neutral-600">
+            <tbody className="divide-y divide-[#c3c6cf]/20 text-neutral-600 font-medium">
               {sortedTransaksi.length > 0 ? (
                 sortedTransaksi.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((trx) => (
-                  <tr key={trx.id} className="even:bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
+                  <tr key={trx.id} className="hover:bg-[#f8f9fb] transition-colors">
                     <td className="py-3 px-6">
-                      <div className="text-xs text-[#1e3251] font-medium">{trx.kodeTransaksi || `#T-${trx.id}`}</div>
+                      <div className="text-xs text-[#002444] font-bold font-mono">{trx.kodeTransaksi || `#T-${trx.id}`}</div>
                       {trx.namaPelanggan && (
                         <div className="text-[10px] text-neutral-500 mt-0.5">{trx.namaPelanggan}</div>
                       )}
@@ -418,31 +424,31 @@ const Transaksi = () => {
                       {trx.items?.map(item => `${item.menu?.nama || 'Item'} x${item.qty || 1}`).join(', ') || 'Tidak ada item'}
                     </td>
                     <td className="py-3 px-6 text-xs">{trx.metode || '-'}</td>
-                    <td className="py-3 px-6 text-xs font-semibold">{formatRupiah(trx.total || 0)}</td>
+                    <td className="py-3 px-6 text-xs font-bold font-mono text-[#002444]">{formatRupiah(trx.total || 0)}</td>
                     <td className="py-3 px-6">{getStatusBadge(trx.status)}</td>
                     <td className="py-3 px-6 text-right">
                       <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => navigate(`/transaksi/${trx.id}`)} 
-                          className="text-[10px] font-medium text-[#1e3251] hover:text-white hover:bg-[#1e3251] border border-[#1e3251] px-3 py-1.5 rounded transition-colors"
+                          className="text-[10px] font-medium text-[#002444] hover:text-white hover:bg-[#002444] border border-[#002444] px-3 py-1.5 rounded transition-colors"
                         >
                           Detail
                         </button>
                         {trx.status === 'PENDING' && (
-                          <button 
-                            onClick={() => handleBatalkanClick(trx.id)} 
-                            className="text-[10px] font-medium text-red-500 hover:text-white hover:bg-red-500 border border-red-500 px-3 py-1.5 rounded transition-colors"
-                          >
-                            Batalkan
-                          </button>
+                           <button 
+                             onClick={() => handleBatalkanClick(trx.id)} 
+                             className="text-[10px] font-medium text-[#ba1a1a] hover:text-white hover:bg-[#ba1a1a] border border-[#ba1a1a] px-3 py-1.5 rounded transition-colors"
+                           >
+                             Batalkan
+                           </button>
                         )}
                         {trx.status === 'SELESAI' && (
-                          <button 
-                            onClick={() => cetakTransaksi(trx.id)} 
-                            className="text-[10px] font-medium text-teal-600 hover:text-white hover:bg-teal-600 border border-teal-600 px-3 py-1.5 rounded transition-colors"
-                          >
-                            Cetak
-                          </button>
+                           <button 
+                             onClick={() => cetakTransaksi(trx.id)} 
+                             className="text-[10px] font-medium text-[#006c4e] hover:text-white hover:bg-[#006c4e] border border-[#006c4e] px-3 py-1.5 rounded transition-colors"
+                           >
+                             Cetak
+                           </button>
                         )}
                       </div>
                     </td>
@@ -451,7 +457,7 @@ const Transaksi = () => {
               ) : (
                 <tr>
                   <td colSpan="8" className="py-4 text-center text-xs text-neutral-500">
-                    Belum ada data transaksi
+                    No data available.
                   </td>
                 </tr>
               )}

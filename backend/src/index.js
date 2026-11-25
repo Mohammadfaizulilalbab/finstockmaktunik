@@ -14,6 +14,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Di production (Railway/Render) server berada di belakang proxy,
+// agar rate limit membaca IP asli pengguna
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // ============================================
 // Middleware Global
 // ============================================
@@ -69,6 +75,7 @@ const dashboardRoutes = require('./modules/dashboard/dashboard.routes');
 const menuRoutes = require('./modules/menu/menu.routes');
 const vendorRoutes = require('./modules/vendor/vendor.routes');
 const pengeluaranRoutes = require('./modules/pengeluaran/pengeluaran.routes');
+const pendaftaranRoutes = require('./modules/pendaftaran/pendaftaran.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/transaksi', transaksiRoutes);
@@ -79,6 +86,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/pengeluaran', pengeluaranRoutes);
+app.use('/api/pendaftaran', pendaftaranRoutes);
 
 // ============================================
 // Middleware Penanganan Error Global

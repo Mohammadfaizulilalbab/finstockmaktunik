@@ -30,7 +30,7 @@ const Pengeluaran = () => {
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
   const fileInputRef = useRef(null);
   
   // Modal & Form state
@@ -98,8 +98,8 @@ const Pengeluaran = () => {
       return <ArrowUpDown size={12} className="text-neutral-300" />;
     }
     return sortConfig.direction === 'ascending' 
-      ? <ArrowUp size={12} className="text-teal-600" />
-      : <ArrowDown size={12} className="text-teal-600" />;
+      ? <ArrowUp size={12} className="text-[#002444]" />
+      : <ArrowDown size={12} className="text-[#002444]" />;
   };
 
   const openModal = (type, item = null) => {
@@ -193,11 +193,11 @@ const Pengeluaran = () => {
 
   const getKategoriBadge = (kategori) => {
     switch (kategori) {
-      case 'BAHAN_BAKU': return <Badge variant="warning">Bahan Baku</Badge>;
-      case 'OPERASIONAL': return <Badge variant="info">Operasional</Badge>;
-      case 'GAJI': return <Badge variant="primary">Gaji Karyawan</Badge>;
-      case 'UTILITAS': return <Badge variant="secondary">Utilitas</Badge>;
-      default: return <Badge variant="neutral">Lainnya</Badge>;
+      case 'BAHAN_BAKU': return <Badge variant="warning" className="bg-[#ffecc7] text-[#653e00] border-none">Bahan Baku</Badge>;
+      case 'OPERASIONAL': return <Badge variant="info" className="bg-blue-50 text-blue-700 border-none">Operasional</Badge>;
+      case 'GAJI': return <Badge variant="primary" className="bg-purple-50 text-purple-700 border-none">Gaji Karyawan</Badge>;
+      case 'UTILITAS': return <Badge variant="secondary" className="bg-neutral-100 text-neutral-700 border-none">Utilitas</Badge>;
+      default: return <Badge variant="neutral" className="bg-neutral-100 text-neutral-600 border-none">Lainnya</Badge>;
     }
   };
 
@@ -211,11 +211,22 @@ const Pengeluaran = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <h1 className="text-xl font-bold text-neutral-800">Manajemen Pengeluaran</h1>
-        <Button onClick={() => openModal('TAMBAH')} className="flex items-center gap-2">
-          <Plus size={18} /> Tambah Pengeluaran
-        </Button>
+      {/* Expense title and trigger */}
+      <div className="flex justify-between items-center bg-white p-5 rounded-xl border border-[#c3c6cf]/30 shadow-sm">
+        <div>
+          <h3 className="text-sm font-bold text-[#002444] uppercase tracking-wider mb-1">
+            Catatan Pengeluaran Operasional
+          </h3>
+          <p className="text-xs text-[#73777f]">Pantau pengeluaran bulanan dan catat pembayaran operasional bisnis Anda.</p>
+        </div>
+
+        <button
+          onClick={() => openModal('TAMBAH')}
+          className="px-4 py-2 bg-[#006c4e] text-white rounded-lg font-bold text-xs hover:bg-[#00513a] flex items-center gap-1 transition-colors"
+        >
+          <Plus size={16} />
+          <span>Tambah Pengeluaran</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -278,16 +289,16 @@ const Pengeluaran = () => {
         }
         noPadding
       >
-        <div className="p-4 border-b border-neutral-100 flex flex-wrap gap-3">
+        <div className="p-4 border-b border-[#c3c6cf]/30 flex flex-wrap gap-3 bg-white">
           <input 
             type="text" 
             placeholder="Cari keterangan..." 
-            className="flex-1 min-w-[200px] px-3 py-1.5 border border-neutral-200 rounded-md text-sm outline-none focus:border-teal-500" 
+            className="flex-1 min-w-[200px] px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm outline-none focus:border-[#002444] text-[#191c1e] transition-colors" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <select 
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm bg-white outline-none"
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm bg-white outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer"
             value={filterKategori}
             onChange={(e) => setFilterKategori(e.target.value)}
           >
@@ -298,18 +309,18 @@ const Pengeluaran = () => {
           </select>
           <input 
             type="date" 
-            className="px-3 py-1.5 border border-neutral-200 rounded-md text-sm outline-none focus:border-teal-500 text-neutral-600"
+            className="px-3 py-1.5 border border-[#c3c6cf] rounded-md text-sm outline-none focus:border-[#002444] text-[#191c1e] transition-colors cursor-pointer"
             value={filterTanggal}
             onChange={(e) => setFilterTanggal(e.target.value)}
           />
         </div>
         
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full text-xs text-left border-collapse bg-white">
             <thead>
-              <tr className="border-b border-neutral-100 bg-neutral-50/50">
+              <tr className="bg-[#f8f9fb] border-b border-[#c3c6cf]/30 text-[#43474e]">
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none"
                   onClick={() => requestSort('tanggal')}
                 >
                   <div className="flex items-center gap-2">
@@ -318,7 +329,7 @@ const Pengeluaran = () => {
                   </div>
                 </th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none"
                   onClick={() => requestSort('keterangan')}
                 >
                   <div className="flex items-center gap-2">
@@ -327,7 +338,7 @@ const Pengeluaran = () => {
                   </div>
                 </th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none"
                   onClick={() => requestSort('kategori')}
                 >
                   <div className="flex items-center gap-2">
@@ -335,9 +346,9 @@ const Pengeluaran = () => {
                     {getSortIcon('kategori')}
                   </div>
                 </th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider">VENDOR</th>
+                <th className="py-3 px-6 font-semibold">VENDOR</th>
                 <th 
-                  className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider cursor-pointer hover:bg-neutral-100 transition-colors select-none"
+                  className="py-3 px-6 font-semibold cursor-pointer hover:bg-neutral-100 transition-colors select-none"
                   onClick={() => requestSort('jumlah')}
                 >
                   <div className="flex items-center gap-2">
@@ -345,37 +356,37 @@ const Pengeluaran = () => {
                     {getSortIcon('jumlah')}
                   </div>
                 </th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-center">BUKTI</th>
-                <th className="py-3 px-6 text-[10px] font-bold text-neutral-400 uppercase tracking-wider text-right">AKSI</th>
+                <th className="py-3 px-6 font-semibold text-center">BUKTI</th>
+                <th className="py-3 px-6 font-semibold text-right">AKSI</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-50 text-neutral-600">
+            <tbody className="divide-y divide-[#c3c6cf]/20 font-medium text-neutral-600">
               {isLoading ? (
                 <tr>
                   <td colSpan="7" className="py-8 text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1e3251] mx-auto"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#002444] mx-auto"></div>
                   </td>
                 </tr>
               ) : sortedData.length > 0 ? (
                 sortedData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((item) => (
-                  <tr key={item.id} className="even:bg-slate-50/50 hover:bg-slate-100/50 transition-colors">
-                    <td className="py-3 px-6 text-xs text-neutral-600">
+                  <tr key={item.id} className="hover:bg-[#f8f9fb] transition-colors">
+                    <td className="py-4 px-6 text-xs text-neutral-500">
                       <div className="flex items-center gap-2">
                         <Wallet size={14} className="text-neutral-400" />
                         {formatTanggalWaktu(item.tanggal)}
                       </div>
                     </td>
-                    <td className="py-3 px-6 text-xs font-medium text-[#1e3251]">{item.keterangan}</td>
-                    <td className="py-3 px-6 text-xs">{getKategoriBadge(item.kategori)}</td>
-                    <td className="py-3 px-6 text-xs text-neutral-600">{item.vendor ? item.vendor.nama : '-'}</td>
-                    <td className="py-3 px-6 text-xs font-bold text-orange-600">{formatRupiah(item.jumlah)}</td>
-                    <td className="py-3 px-6 text-center">
+                    <td className="py-4 px-6 text-xs font-bold text-[#002444]">{item.keterangan}</td>
+                    <td className="py-4 px-6 text-xs">{getKategoriBadge(item.kategori)}</td>
+                    <td className="py-4 px-6 text-xs text-neutral-500">{item.vendor ? item.vendor.nama : '-'}</td>
+                    <td className="py-4 px-6 text-xs font-mono font-bold text-[#ba1a1a]">{formatRupiah(item.jumlah)}</td>
+                    <td className="py-4 px-6 text-center">
                       {item.buktiUrl ? (
                         <a 
                           href={import.meta.env.VITE_API_BASE_URL ? import.meta.env.VITE_API_BASE_URL.replace('/api', item.buktiUrl) : `http://localhost:5000${item.buktiUrl}`} 
                           target="_blank" 
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-500 hover:text-blue-700 bg-blue-50 px-2 py-1 rounded"
+                          className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-1 rounded"
                         >
                           <ImageIcon size={12} /> Lihat
                         </a>
@@ -387,13 +398,13 @@ const Pengeluaran = () => {
                       <div className="flex justify-end gap-2">
                         <button 
                           onClick={() => openModal('EDIT', item)} 
-                          className="text-[10px] font-medium text-[#10b981] hover:text-white hover:bg-[#10b981] border border-[#10b981] px-3 py-1.5 rounded transition-colors"
+                          className="text-[10px] font-medium text-amber-600 hover:text-white hover:bg-amber-500 border border-amber-500 px-3 py-1.5 rounded transition-colors"
                         >
                           Edit
                         </button>
                         <button 
                           onClick={() => handleDeleteClick(item.id)} 
-                          className="text-[10px] font-medium text-red-500 hover:text-white hover:bg-red-500 border border-red-500 px-3 py-1.5 rounded transition-colors"
+                          className="text-[10px] font-medium text-red-600 hover:text-white hover:bg-red-500 border border-red-500 px-3 py-1.5 rounded transition-colors"
                         >
                           Hapus
                         </button>
@@ -403,9 +414,9 @@ const Pengeluaran = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-8 text-center text-xs text-neutral-500 flex flex-col items-center">
+                  <td colSpan="7" className="py-8 text-center text-xs text-neutral-500 flex flex-col items-center justify-center">
                     <Wallet size={40} className="text-neutral-200 mb-2" />
-                    Belum ada data pengeluaran
+                    Tidak ada catatan pengeluaran.
                   </td>
                 </tr>
               )}
