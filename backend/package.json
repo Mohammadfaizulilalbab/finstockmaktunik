@@ -12,7 +12,17 @@
   "jest": {
     "testEnvironment": "node",
     "collectCoverageFrom": [
-      "src/modules/pendaftaran/pendaftaran.service.js"
+      "src/modules/pendaftaran/pendaftaran.service.js",
+      "src/modules/auth/auth.service.js",
+      "src/modules/auth/auth.session.js",
+      "src/modules/auth/password.service.js",
+      "src/middlewares/auth.middleware.js",
+      "src/middlewares/role.middleware.js",
+      "src/config/permissions.js",
+      "src/modules/dashboard/dashboard.service.js",
+      "src/modules/menu/menu.service.js",
+      "src/modules/transaksi/transaksi.service.js",
+      "src/modules/laporan/laporan.service.js"
     ]
   },
   "prisma": {
